@@ -6,3 +6,10 @@ __pycache__/
 *.avi
 *.wav
 .DS_Store
+
+# ── ditch every file inside data/ ──
+daic_data/**
+
+# keep the folder itself (handy for pipelines expecting it)
+!daic_data/.gitkeep
+
