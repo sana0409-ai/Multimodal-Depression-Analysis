@@ -8,8 +8,9 @@ __pycache__/
 .DS_Store
 
 # ── ditch every file inside data/ ──
-daic_data/**
+models/daic_data/**
 
 # keep the folder itself (handy for pipelines expecting it)
-!daic_data/.gitkeep
-
+!models/daic_data/.gitkeep
+data/**
+!data/.gitkeep
