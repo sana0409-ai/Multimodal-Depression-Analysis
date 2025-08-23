@@ -1,0 +1,29 @@
+# Ignore ALL virtual envs
+venv/
+.venv/
+env/
+ENV/
+SRC/venv/
+
+# Ignore Python build files
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.ipynb_checkpoints/
+
+# Ignore model and dataset folders
+models/
+models/**
+data/
+data/**
+**/daic_data/**
+
+# Ignore large data files
+*.csv
+*.npy
+*.npz
+*.pth
+*.pkl
+*.bin
