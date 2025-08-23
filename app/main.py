@@ -10,6 +10,7 @@ import speech_recognition as sr
 import opensmile
 import parselmouth
 from sentence_transformers import SentenceTransformer
+from flask_cors import CORS  # ✅ added
 
 # ================== CONFIG ==================
 OPENFACE_EXE      = os.getenv("OPENFACE_EXE", "FeatureExtraction")  # set full path if needed
@@ -34,6 +35,7 @@ SEG_SECONDS = 5    # each segment duration
 # ================== APP ==================
 app = Flask(__name__)
 app.url_map.strict_slashes = False  # accept both /path and /path/
+CORS(app)  # ✅ allow browser calls from Vercel/any origin
 
 # ---------- preprocessing + model ----------
 top100_names = joblib.load("models/top100_features.joblib")
@@ -419,4 +421,6 @@ if __name__ == "__main__":
     of = os.environ.get("OPENFACE_EXE")
     if of:
         os.environ["PATH"] = os.pathsep + os.path.dirname(of) + os.environ.get("PATH", "")
-    app.run(host="0.0.0.0", port=7860, debug=True)
+    # ✅ use PORT from env for Render/Railway, default 7860 locally
+    port = int(os.getenv("PORT", "7860"))
+    app.run(host="0.0.0.0", port=port, debug=True)
