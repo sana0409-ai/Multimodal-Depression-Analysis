@@ -4,9 +4,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://multimodal-depression-analysis.onrender.com/:path*"
+    },
+    {
+      "source": "/((?!api).*)",
+      "destination": "/index.html"
     }
-  ],
-  "routes": [
-    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
