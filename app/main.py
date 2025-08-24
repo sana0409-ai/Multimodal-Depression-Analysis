@@ -263,7 +263,8 @@ INDEX_HTML = """
 
         let ok = false;
         try {
-          const res = await fetch('/segment', {method:'POST', body:fd, signal: ctrl.signal});
+          const res = await fetch('/api/segment', {method:'POST', body:fd, signal: ctrl.signal});
+
           clearTimeout(t);
           const j = await res.json().catch(() => ({}));
           ok = res.ok && j && j.ok;
@@ -284,7 +285,8 @@ INDEX_HTML = """
 
     async function finalize(){
       append("🧠 Finalizing prediction...");
-      const res = await fetch('/finalize?sid=' + SID);
+      const res = await fetch('/api/finalize?sid=' + SID);
+
       const j = await res.json().catch(()=>({}));
       if (!res.ok || !j) { append("❌ Finalize failed."); return; }
       append("🎯 P(Depressed)=" + j.p_depressed.toFixed(3) + " → " + j.label);
