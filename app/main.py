@@ -9,8 +9,8 @@ import soundfile as sf
 import speech_recognition as sr
 import opensmile
 import parselmouth
-from sentence_transformers import SentenceTransformer
-from flask_cors import CORS  # ✅ added
+from flask_cors import CORS
+import requests
 
 # ================== CONFIG ==================
 OPENFACE_EXE      = os.getenv("OPENFACE_EXE", "FeatureExtraction")  # set full path if needed
@@ -35,7 +35,7 @@ SEG_SECONDS = 5    # each segment duration
 # ================== APP ==================
 app = Flask(__name__)
 app.url_map.strict_slashes = False  # accept both /path and /path/
-CORS(app)  # ✅ allow browser calls from Vercel/any origin
+CORS(app)  # allow browser calls from Vercel/any origin
 
 # ---------- preprocessing + model ----------
 top100_names = joblib.load("models/top100_features.joblib")
@@ -69,7 +69,6 @@ SMILE_GEMAPS = opensmile.Smile(
     feature_level=opensmile.FeatureLevel.Functionals,
 )
 recognizer = sr.Recognizer()
-bert = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
 
 # In-memory session store (dev only)
 SESS = {}  # sid -> {"qvecs": [np.array]}
@@ -294,6 +293,41 @@ INDEX_HTML = """
 </html>
 """
 
+# ----- HF Embeddings (offload to Inference API) -----
+HF_MODEL = os.getenv("HF_EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+HF_API_TOKEN = os.getenv("HF_API_TOKEN", None)
+EMB_DIM = 384  # MiniLM-L6-v2
+
+def get_text_embedding(text: str) -> np.ndarray:
+    """
+    Calls HF Inference API for embeddings. Returns a 384-dim vector.
+    Falls back to zeros on error or missing token so the app keeps running.
+    """
+    if not text or not text.strip():
+        return np.zeros(EMB_DIM, dtype=np.float32)
+    if not HF_API_TOKEN:
+        return np.zeros(EMB_DIM, dtype=np.float32)
+
+    url = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{HF_MODEL}"
+    headers = {"Authorization": f"Bearer {HF_API_TOKEN}"}
+    try:
+        resp = requests.post(url, headers=headers, json={"inputs": text, "truncate": True}, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        # mean pool if token-level output
+        if isinstance(data, list) and data and isinstance(data[0], list):
+            vec = np.array(data, dtype=np.float32).mean(axis=0)
+        else:
+            vec = np.array(data, dtype=np.float32)
+        if vec.shape[0] < EMB_DIM:
+            vec = np.concatenate([vec, np.zeros(EMB_DIM - vec.shape[0], dtype=np.float32)])
+        elif vec.shape[0] > EMB_DIM:
+            vec = vec[:EMB_DIM]
+        return vec.astype(np.float32)
+    except Exception as e:
+        app.logger.warning(f"HF embedding failed: {e}")
+        return np.zeros(EMB_DIM, dtype=np.float32)
+
 # ---------- routes ----------
 @app.get("/")
 def ui():
@@ -333,7 +367,7 @@ def segment():
         fform = extract_formants(audio, sr)              # (3,)
         clnf = extract_clnf_features_from_video(tmp_video.name)  # (136,) or zeros
         transcript = transcribe_wav(tmp_wav.name)        # str
-        emb = bert.encode([transcript], convert_to_numpy=True)[0]  # (384,)
+        emb = get_text_embedding(transcript)             # (384,)
 
         vec = np.concatenate([c, fform, clnf, emb], axis=0).astype(np.float32)  # per-seg vector
         sess = SESS.setdefault(sid, {"qvecs": []})
@@ -421,6 +455,6 @@ if __name__ == "__main__":
     of = os.environ.get("OPENFACE_EXE")
     if of:
         os.environ["PATH"] = os.pathsep + os.path.dirname(of) + os.environ.get("PATH", "")
-    # ✅ use PORT from env for Render/Railway, default 7860 locally
+    # use PORT from env for Render/Railway, default 7860 locally
     port = int(os.getenv("PORT", "7860"))
     app.run(host="0.0.0.0", port=port, debug=True)
