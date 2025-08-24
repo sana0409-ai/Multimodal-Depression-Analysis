@@ -14,7 +14,11 @@ import requests
 
 # ================== CONFIG ==================
 OPENFACE_EXE      = os.getenv("OPENFACE_EXE", "FeatureExtraction")  # set full path if needed
-FFMPEG_BIN        = os.getenv("FFMPEG_BIN", "ffmpeg")
+try:
+    import imageio_ffmpeg
+    FFMPEG_BIN = os.getenv("FFMPEG_BIN", imageio_ffmpeg.get_ffmpeg_exe())
+except Exception:
+    FFMPEG_BIN = os.getenv("FFMPEG_BIN", "ffmpeg")
 OPENFACE_TIMEOUT  = int(os.getenv("OPENFACE_TIMEOUT", "12"))        # seconds
 OPENFACE_SKIP     = os.getenv("OPENFACE_SKIP", "0") == "1"          # skip CLNF entirely
 
