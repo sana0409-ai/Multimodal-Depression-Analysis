@@ -18,6 +18,11 @@ This repository contains a research-grade, real-time depression screening system
 - PyTorch, openSMILE, OpenFace, Praat/Parselmouth, sentence-transformers, SpeechRecognition, OpenCV
 
 **Intended for researchers and developers in affective computing, clinical informatics, and mental health screening.**
+### Hosted environment tips
+- Cold starts on Render can take ~20–60s. The frontend now warms the backend via `/api/health` and uses a 90s upload timeout.
+- If Google SpeechRecognition is slow or blocked on your host, set `STT_SKIP=1` to skip STT (text embeddings will be zeros).
+  - On Render, add Environment Variable `STT_SKIP` = `1`.
+  - Optionally set `OPENFACE_SKIP=1` if OpenFace is unavailable; CLNF features will be zeros.
 
 ---
 

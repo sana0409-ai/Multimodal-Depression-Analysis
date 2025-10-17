@@ -7,6 +7,7 @@ import torch.nn as nn
 import joblib
 import soundfile as sf
 import speech_recognition as sr
+import concurrent.futures as futures
 import opensmile
 import parselmouth
 from flask_cors import CORS
@@ -21,6 +22,9 @@ except Exception:
     FFMPEG_BIN = os.getenv("FFMPEG_BIN", "ffmpeg")
 OPENFACE_TIMEOUT  = int(os.getenv("OPENFACE_TIMEOUT", "12"))        # seconds
 OPENFACE_SKIP     = os.getenv("OPENFACE_SKIP", "0") == "1"          # skip CLNF entirely
+# Optionally skip speech-to-text on hosted envs to avoid slow external requests
+STT_SKIP          = os.getenv("STT_SKIP", "0") == "1"
+STT_TIMEOUT       = float(os.getenv("STT_TIMEOUT", "7.0"))          # seconds
 
 QUESTIONS = [
     "hi i'm ellie thanks for coming in today",
@@ -170,10 +174,24 @@ def extract_clnf_features_from_video(video_path):
                 pass
 
 def transcribe_wav(wav_path):
+    # Allow skipping STT on environments without fast/consistent STT availability
+    if STT_SKIP:
+        return ""
     with sr.AudioFile(wav_path) as src:
         audio = recognizer.record(src)
+
+    # Run STT in a short-lived thread and enforce a strict timeout
+    def _do_stt():
+        try:
+            return recognizer.recognize_google(audio)
+        except Exception:
+            return ""
+
     try:
-        return recognizer.recognize_google(audio)
+        with futures.ThreadPoolExecutor(max_workers=1) as ex:
+            fut = ex.submit(_do_stt)
+            # Enforce configured timeout for STT to avoid blocking the whole request
+            return fut.result(timeout=STT_TIMEOUT) or ""
     except Exception:
         return ""
 
@@ -341,7 +359,26 @@ def ui():
 
 @app.get("/health")
 def health():
-    return jsonify(status="ok", selected_dim=len(top100_names), first_feature_names=top100_names[:5])
+    try:
+        of_path = shutil.which(OPENFACE_EXE)
+    except Exception:
+        of_path = None
+    return jsonify(
+        status="ok",
+        selected_dim=len(top100_names),
+        first_feature_names=top100_names[:5],
+        openface_present=bool(of_path),
+        openface_exe=of_path or OPENFACE_EXE,
+        openface_timeout=OPENFACE_TIMEOUT,
+        openface_skip=OPENFACE_SKIP,
+        stt_skip=STT_SKIP,
+        hf_embeddings=bool(HF_API_TOKEN),
+    )
+
+@app.get("/healthz")
+def healthz():
+    """Alias used by some platforms' default health checks."""
+    return health()
 
 @app.get("/routes")
 def routes():
@@ -361,7 +398,9 @@ def segment():
 
         # Extract WAV
         tmp_wav = tempfile.NamedTemporaryFile(delete=False, suffix=".wav", dir="tmp")
+        t_ff0 = time.perf_counter()
         ffmpeg_extract_wav(tmp_video.name, tmp_wav.name, sr=SR_RATE)
+        t_ff1 = time.perf_counter()
 
         # Load audio buffer
         audio, sr = sf.read(tmp_wav.name)
@@ -369,11 +408,21 @@ def segment():
             audio = audio[:,0]
 
         # Features
+        t_g0 = time.perf_counter()
         c = extract_gemaps(audio, sr)                    # (≈88,)
+        t_g1 = time.perf_counter()
+        t_f0 = time.perf_counter()
         fform = extract_formants(audio, sr)              # (3,)
+        t_f1 = time.perf_counter()
+        t_of0 = time.perf_counter()
         clnf = extract_clnf_features_from_video(tmp_video.name)  # (136,) or zeros
+        t_of1 = time.perf_counter()
+        t_stt0 = time.perf_counter()
         transcript = transcribe_wav(tmp_wav.name)        # str
+        t_stt1 = time.perf_counter()
+        t_emb0 = time.perf_counter()
         emb = get_text_embedding(transcript)             # (384,)
+        t_emb1 = time.perf_counter()
 
         vec = np.concatenate([c, fform, clnf, emb], axis=0).astype(np.float32)  # per-seg vector
         sess = SESS.setdefault(sid, {"qvecs": []})
@@ -384,7 +433,17 @@ def segment():
             try: os.remove(p)
             except: pass
 
-        app.logger.info(f"/segment OK in {time.time()-t0:.2f}s (qidx={qidx})")
+        total = time.time()-t0
+        vsize_kb = 0
+        try:
+            vsize_kb = int(os.path.getsize(tmp_video.name)/1024)
+        except Exception:
+            pass
+        app.logger.info(
+            "/segment OK qidx=%s total=%.2fs sizes_kb(video)=%s ffmpeg=%.2fs gemaps=%.2fs formants=%.2fs openface=%.2fs stt=%.2fs emb=%.2fs",
+            qidx, total, vsize_kb,
+            (t_ff1-t_ff0), (t_g1-t_g0), (t_f1-t_f0), (t_of1-t_of0), (t_stt1-t_stt0), (t_emb1-t_emb0)
+        )
         return jsonify(ok=True, count=len(sess["qvecs"]))
     except Exception as e:
         app.logger.exception("segment_failed")
