@@ -16,6 +16,10 @@ __pycache__/
 # Ignore model and dataset folders
 models/
 models/**
+# Keep the minimal artifacts needed at runtime
+!models/depression_model.pt
+!models/scaler.joblib
+!models/top100_features.joblib
 data/
 data/**
 **/daic_data/**
