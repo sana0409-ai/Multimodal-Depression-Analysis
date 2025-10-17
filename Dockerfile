@@ -2,6 +2,7 @@
 FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
+ARG MAKE_JOBS=1
 
 # ---- System deps ----
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -24,15 +25,17 @@ RUN sh -c 'echo /usr/local/lib > /etc/ld.so.conf.d/local.conf' && ldconfig
 RUN git clone --depth 1 --branch v19.24 https://github.com/davisking/dlib.git /opt/dlib && \
     cd /opt/dlib && mkdir build && cd build && \
     cmake .. -DBUILD_SHARED_LIBS=ON -DUSE_AVX_INSTRUCTIONS=ON && \
-    cmake --build . --config Release -- -j"$(nproc)" && \
+    cmake --build . --config Release -- -j"${MAKE_JOBS}" && \
     cmake --install . && ldconfig
 
 # ---- Build OpenFace against the new dlib ----
 RUN git clone --depth 1 https://github.com/TadasBaltrusaitis/OpenFace.git /opt/OpenFace && \
     cd /opt/OpenFace && bash ./download_models.sh && \
     mkdir -p build && cd build && \
-    cmake -DCMAKE_BUILD_TYPE=Release -Ddlib_DIR=/usr/local/lib/cmake/dlib .. && \
-    make -j"$(nproc)" && make install && \
+    cmake -DCMAKE_BUILD_TYPE=Release \
+          -Ddlib_DIR=/usr/local/lib/cmake/dlib \
+          -DBUILD_TESTS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_DOCS=OFF .. && \
+    make -j"${MAKE_JOBS}" && make install && \
     ln -sf /usr/local/bin/FeatureExtraction /usr/bin/FeatureExtraction
 
 ENV OPENFACE_EXE=/usr/local/bin/FeatureExtraction
