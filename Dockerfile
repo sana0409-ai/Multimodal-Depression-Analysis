@@ -3,6 +3,8 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
 ARG MAKE_JOBS=1
+ENV OMP_NUM_THREADS=1
+ENV MKL_NUM_THREADS=1
 
 # ---- System deps ----
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -43,9 +45,9 @@ ENV PATH="/usr/local/bin:${PATH}"
 
 # ---- Python deps ----
 COPY requirements.txt .
-# scikit-learn pin keeps compatibility with your saved scaler
+# Install CPU-only PyTorch and Python deps (avoid CUDA packages to reduce size/memory)
 RUN python3 -m pip install --upgrade pip && \
-    python3 -m pip install --no-cache-dir scikit-learn==1.6.1 && \
+    python3 -m pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
     python3 -m pip install --no-cache-dir -r requirements.txt
 
 # ---- App ----
