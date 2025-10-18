@@ -28,7 +28,7 @@
     // Auto-bypass Vercel proxy when hosted on Vercel to avoid proxy timeouts
     // You can override with: window.API_BASE = 'https://<your-render-service>.onrender.com'
     const defaultApiBase = (location.hostname.endsWith('.vercel.app'))
-      ? 'https://multimodal-depression-analysis.onrender.com'
+      ? 'https://multimodal-depression-analysis-1.onrender.com'
       : '/api';
     const API_BASE = (window.API_BASE || defaultApiBase);
     // Same constants your Flask template used
