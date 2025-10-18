@@ -57,4 +57,5 @@ RUN python3 -m pip install --upgrade pip && \
 COPY . .
 EXPOSE 7860
 # Run with Gunicorn (1 worker, 2 threads) to keep memory low on free tier
-CMD ["gunicorn", "-w", "1", "-k", "gthread", "--threads", "2", "-t", "120", "-b", "0.0.0.0:${PORT}", "app.main:app"]
+# Use shell form so $PORT expands (JSON exec form does not expand env vars)
+CMD gunicorn -w 1 -k gthread --threads 2 -t 120 -b 0.0.0.0:$PORT app.main:app
