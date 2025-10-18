@@ -27,9 +27,10 @@
   <script>
     // Auto-bypass Vercel proxy when hosted on Vercel to avoid proxy timeouts
     // You can override with: window.API_BASE = 'https://<your-render-service>.onrender.com'
+    // Prefer Vercel proxy on Vercel (same-origin); fall back to direct Render
     const defaultApiBase = (location.hostname.endsWith('.vercel.app'))
-      ? 'https://multimodal-depression-analysis-1.onrender.com'
-      : '/api';
+      ? '/api'
+      : 'https://multimodal-depression-analysis-1.onrender.com';
     const API_BASE = (window.API_BASE || defaultApiBase);
     // Same constants your Flask template used
     const QUESTIONS = [
@@ -124,43 +125,47 @@
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 120000);
 
-        let ok = false;
-        try {
-          // 👇 call backend through API_BASE (either Vercel proxy or direct Render origin)
-          const res = await fetch(`${API_BASE}/segment`, {method:'POST', body:fd, signal: ctrl.signal, mode:'cors', cache:'no-store'});
-          clearTimeout(t);
+        // Unified upload with robust fallback
+        const tryUpload = async (base) => {
+          const res = await fetch(`${base}/segment`, {method:'POST', body:fd, signal: ctrl.signal, mode:'cors', cache:'no-store', credentials:'omit'});
           const j = await res.json().catch(() => ({}));
-          ok = res.ok && j && j.ok;
-          if (ok) {
-            append("✅ Segment saved (" + j.count + "/" + QUESTIONS.length + ")");
+          return { ok: res.ok && j && j.ok, status: res.status, body: j };
+        };
+
+        let ok = false; let status = 0; let firstErr = '';
+        const primary = API_BASE;
+        const fallback = primary.startsWith('/api') ? 'https://multimodal-depression-analysis-1.onrender.com' : '/api';
+        try {
+          const r1 = await tryUpload(primary);
+          status = r1.status; ok = r1.ok;
+          if (!ok) {
+            append(`❌ Segment failed via primary (${primary}) status=${status||''}.`);
+            append(`↪️ Retrying via fallback (${fallback})...`);
+            const r2 = await tryUpload(fallback);
+            ok = r2.ok; status = r2.status;
+            if (ok) append(`✅ Segment saved via fallback (${r2.body.count}/${QUESTIONS.length})`);
           } else {
-            append("❌ Segment failed via primary path (" + (res.status||'') + ").");
-            // Fallback: if hosted on Vercel, retry through /api proxy
-            if (location.hostname.endsWith('.vercel.app')) {
-              append("↪️ Retrying via proxy /api/segment...");
-              try {
-                const res2 = await fetch(`/api/segment`, {method:'POST', body:fd, mode:'cors', cache:'no-store', signal: ctrl.signal});
-                const j2 = await res2.json().catch(() => ({}));
-                ok = res2.ok && j2 && j2.ok;
-                if (ok) {
-                  append("✅ Segment saved via proxy (" + j2.count + "/" + QUESTIONS.length + ")");
-                }
-              } catch (e2) {
-                append("❌ Proxy retry error: " + (e2?.name || '') + ' ' + (e2?.message || e2));
-              }
-            }
-            if (!ok) {
-              append("❌ Segment failed — please retry or skip.");
-              retry.style.display = 'inline-block';
-              btn.disabled = false; skip.disabled = false;
-            }
+            append(`✅ Segment saved (${r1.body.count}/${QUESTIONS.length})`);
           }
         } catch (err) {
-          clearTimeout(t);
           const name = err?.name || '';
           const msg  = err?.message || String(err);
-          if (name === 'AbortError') append("❌ Upload timed out. The server may be cold starting or busy. Please retry or skip.");
-          else append("❌ Upload/record error: " + name + (msg? (": "+msg):''));
+          firstErr = `${name}${msg? (': '+msg):''}`;
+          append(`⚠️ Primary upload threw ${firstErr}. Retrying via fallback (${fallback})...`);
+          try {
+            const r2 = await tryUpload(fallback);
+            ok = r2.ok; status = r2.status;
+            if (ok) append(`✅ Segment saved via fallback (${r2.body.count}/${QUESTIONS.length})`);
+          } catch (err2) {
+            const name2 = err2?.name || '';
+            const msg2  = err2?.message || String(err2);
+            append(`❌ Fallback upload also failed: ${name2}${msg2? (': '+msg2):''}`);
+          }
+        }
+
+        clearTimeout(t);
+        if (!ok) {
+          append(`❌ Segment failed (status=${status||''}). Please retry or skip.`);
           retry.style.display = 'inline-block';
           btn.disabled = false; skip.disabled = false;
         }
