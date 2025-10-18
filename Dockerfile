@@ -5,6 +5,9 @@ WORKDIR /app
 ARG MAKE_JOBS=1
 ENV OMP_NUM_THREADS=1
 ENV MKL_NUM_THREADS=1
+ENV OPENBLAS_NUM_THREADS=1
+ENV NUMEXPR_MAX_THREADS=1
+ENV PYTHONUNBUFFERED=1
 
 # ---- System deps ----
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -53,4 +56,5 @@ RUN python3 -m pip install --upgrade pip && \
 # ---- App ----
 COPY . .
 EXPOSE 7860
-CMD ["python3", "app/main.py"]
+# Run with Gunicorn (1 worker, 2 threads) to keep memory low on free tier
+CMD ["gunicorn", "-w", "1", "-k", "gthread", "--threads", "2", "-t", "120", "-b", "0.0.0.0:${PORT}", "app.main:app"]
