@@ -99,7 +99,13 @@
 
       try {
         const stream = await getStream();
-        const rec = new MediaRecorder(stream, {mimeType: 'video/webm;codecs=vp8,opus'});
+        // Lower bitrate to shrink upload size and speed up processing on free tier
+        const rec = new MediaRecorder(stream, {
+          mimeType: 'video/webm;codecs=vp8,opus',
+          bitsPerSecond: 250000,            // ~250 kbps total
+          videoBitsPerSecond: 200000,       // ~200 kbps video
+          audioBitsPerSecond: 64000         // ~64 kbps audio
+        });
         let chunks = [];
         rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
         rec.start();
@@ -121,24 +127,40 @@
         let ok = false;
         try {
           // 👇 call backend through API_BASE (either Vercel proxy or direct Render origin)
-          const res = await fetch(`${API_BASE}/segment`, {method:'POST', body:fd, signal: ctrl.signal});
+          const res = await fetch(`${API_BASE}/segment`, {method:'POST', body:fd, signal: ctrl.signal, mode:'cors', cache:'no-store'});
           clearTimeout(t);
           const j = await res.json().catch(() => ({}));
           ok = res.ok && j && j.ok;
           if (ok) {
             append("✅ Segment saved (" + j.count + "/" + QUESTIONS.length + ")");
           } else {
-            append("❌ Segment failed — please retry or skip.");
-            retry.style.display = 'inline-block';
-            btn.disabled = false; skip.disabled = false;
+            append("❌ Segment failed via primary path (" + (res.status||'') + ").");
+            // Fallback: if hosted on Vercel, retry through /api proxy
+            if (location.hostname.endsWith('.vercel.app')) {
+              append("↪️ Retrying via proxy /api/segment...");
+              try {
+                const res2 = await fetch(`/api/segment`, {method:'POST', body:fd, mode:'cors', cache:'no-store', signal: ctrl.signal});
+                const j2 = await res2.json().catch(() => ({}));
+                ok = res2.ok && j2 && j2.ok;
+                if (ok) {
+                  append("✅ Segment saved via proxy (" + j2.count + "/" + QUESTIONS.length + ")");
+                }
+              } catch (e2) {
+                append("❌ Proxy retry error: " + (e2?.name || '') + ' ' + (e2?.message || e2));
+              }
+            }
+            if (!ok) {
+              append("❌ Segment failed — please retry or skip.");
+              retry.style.display = 'inline-block';
+              btn.disabled = false; skip.disabled = false;
+            }
           }
         } catch (err) {
           clearTimeout(t);
-          if (err && err.name === 'AbortError') {
-            append("❌ Upload timed out. The server may be cold starting or busy. Please retry or skip.");
-          } else {
-            append("❌ Upload/record error: " + err);
-          }
+          const name = err?.name || '';
+          const msg  = err?.message || String(err);
+          if (name === 'AbortError') append("❌ Upload timed out. The server may be cold starting or busy. Please retry or skip.");
+          else append("❌ Upload/record error: " + name + (msg? (": "+msg):''));
           retry.style.display = 'inline-block';
           btn.disabled = false; skip.disabled = false;
         }
