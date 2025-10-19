@@ -7,6 +7,7 @@ ENV OMP_NUM_THREADS=1
 ENV MKL_NUM_THREADS=1
 ENV OPENBLAS_NUM_THREADS=1
 ENV NUMEXPR_MAX_THREADS=1
+ENV MALLOC_ARENA_MAX=2
 ENV PYTHONUNBUFFERED=1
 
 # ---- System deps ----
@@ -56,6 +57,6 @@ RUN python3 -m pip install --upgrade pip && \
 # ---- App ----
 COPY . .
 EXPOSE 7860
-# Run with Gunicorn (1 worker, 2 threads) to keep memory low on free tier
+# Run with Gunicorn (1 worker, sync, 1 thread) to minimize memory on free tier
 # Use shell form so $PORT expands (JSON exec form does not expand env vars)
-CMD gunicorn -w 1 -k gthread --threads 2 -t 120 -b 0.0.0.0:$PORT app.main:app
+CMD gunicorn -w 1 -k sync --threads 1 -t 180 -b 0.0.0.0:$PORT app.main:app
