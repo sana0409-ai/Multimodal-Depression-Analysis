@@ -25,11 +25,10 @@
   <div id="log"></div>
 
   <script>
-    // Auto-bypass Vercel proxy when hosted on Vercel to avoid proxy timeouts
+    // Prefer direct Render on Vercel to avoid the 30s proxy timeout on large uploads
     // You can override with: window.API_BASE = 'https://<your-render-service>.onrender.com'
-    // Prefer Vercel proxy on Vercel (same-origin); fall back to direct Render
     const defaultApiBase = (location.hostname.endsWith('.vercel.app'))
-      ? '/api'
+      ? 'https://multimodal-depression-analysis-1.onrender.com'
       : 'https://multimodal-depression-analysis-1.onrender.com';
     const API_BASE = (window.API_BASE || defaultApiBase);
     // Same constants your Flask template used
@@ -103,8 +102,8 @@
         // Lower bitrate to shrink upload size and speed up processing on free tier
         const rec = new MediaRecorder(stream, {
           mimeType: 'video/webm;codecs=vp8,opus',
-          bitsPerSecond: 250000,            // ~250 kbps total
-          videoBitsPerSecond: 200000,       // ~200 kbps video
+          bitsPerSecond: 200000,            // ~200 kbps total (smaller upload)
+          videoBitsPerSecond: 150000,       // ~150 kbps video
           audioBitsPerSecond: 64000         // ~64 kbps audio
         });
         let chunks = [];
@@ -140,8 +139,9 @@
         };
 
         let ok = false; let status = 0; let firstErr = '';
-        const primary = API_BASE;
-        const fallback = primary.startsWith('/api') ? 'https://multimodal-depression-analysis-1.onrender.com' : '/api';
+  const primary = API_BASE;
+  // If primary is direct Render, fallback to /api (Vercel proxy). If primary is /api, fallback to direct Render.
+  const fallback = primary.startsWith('http') ? '/api' : 'https://multimodal-depression-analysis-1.onrender.com';
         try {
           const r1 = await tryUpload(primary, 180000);
           status = r1.status; ok = r1.ok;
