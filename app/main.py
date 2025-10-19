@@ -43,7 +43,15 @@ SEG_SECONDS = 5    # each segment duration
 # ================== APP ==================
 app = Flask(__name__)
 app.url_map.strict_slashes = False  # accept both /path and /path/
-CORS(app)  # allow browser calls from Vercel/any origin
+CORS(app, resources={r"/*": {"origins": "*"}})  # allow browser calls from any origin
+
+@app.after_request
+def add_cors_headers(resp):
+    # Ensure CORS headers even on errors
+    resp.headers.setdefault("Access-Control-Allow-Origin", "*")
+    resp.headers.setdefault("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
+    resp.headers.setdefault("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    return resp
 
 # ---------- preprocessing + model ----------
 top100_names = joblib.load("models/top100_features.joblib")
@@ -386,6 +394,10 @@ def healthz():
 def routes():
     rules = sorted([f"{sorted(list(r.methods))} {r.rule}" for r in app.url_map.iter_rules()])
     return jsonify({"routes": rules})
+
+@app.route("/segment", methods=["OPTIONS"])  # explicit preflight handler
+def segment_options():
+    return ("", 204)
 
 @app.post("/segment")
 def segment():
