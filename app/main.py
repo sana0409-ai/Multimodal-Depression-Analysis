@@ -50,7 +50,11 @@ def add_cors_headers(resp):
     # Ensure CORS headers even on errors
     resp.headers.setdefault("Access-Control-Allow-Origin", "*")
     resp.headers.setdefault("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
-    resp.headers.setdefault("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    resp.headers.setdefault(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization, Accept, X-Requested-With"
+    )
+    resp.headers.setdefault("Access-Control-Max-Age", "86400")
     return resp
 
 # ---------- preprocessing + model ----------
