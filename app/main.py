@@ -103,6 +103,8 @@ def ffmpeg_transcode_to_mp4(src_path):
     cmd = [
         FFMPEG_BIN, "-y",
         "-i", src_path,
+        # Downscale and reduce FPS to minimize OpenFace CPU/RAM
+        "-vf", "scale=320:240,fps=15",
         "-c:v", "libx264", "-pix_fmt", "yuv420p",
         "-an",
         tmp_mp4

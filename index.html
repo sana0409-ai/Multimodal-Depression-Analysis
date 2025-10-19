@@ -68,7 +68,7 @@
     async function getStream(){
       if (!mediaStream) {
         mediaStream = await navigator.mediaDevices.getUserMedia({
-          video:{ width:{ideal:320}, height:{ideal:240} },
+          video:{ width:{ideal:320}, height:{ideal:240}, frameRate:{ideal:15, max:15} },
           audio:true
         });
         preview.srcObject = mediaStream;
