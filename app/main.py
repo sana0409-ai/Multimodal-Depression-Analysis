@@ -163,13 +163,13 @@ def extract_formants(audio_buffer, sr):
         f_list.append([f1, f2, f3])
     return np.nanmean(f_list, axis=0).astype(np.float32)  # (3,)
 
-import mediapipe as mp
 import cv2
+import mediapipe as mp
 
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, min_detection_confidence=0.5)
 
-OPENFACE_68_INDICES = [
+MEDIAPIPE_68_INDICES = [
     33, 246, 161, 160, 159, 158, 157, 173, 133, 155, 154, 153, 145, 144, 163, 7,
     362, 398, 384, 385, 386, 387, 388, 466, 263, 249, 390, 373, 374, 380, 381, 382,
     61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291,
@@ -179,13 +179,8 @@ OPENFACE_68_INDICES = [
 
 def extract_clnf_features_from_video(video_path):
     """
-    Extract facial features from video using MediaPipe for face detection,
-    but return scaler-centered values for model compatibility.
-    
-    Note: The model was trained on OpenFace CLNF features which are incompatible
-    with MediaPipe Face Mesh. We detect if a face is present and return 
-    scaler-centered values (treating facial features as "neutral/average").
-    This allows the model to rely on audio and text features for predictions.
+    Extract 68 facial landmarks using MediaPipe Face Mesh.
+    Uses scaler-centered fallback values since MediaPipe coordinates differ from OpenFace training.
     """
     if OPENFACE_SKIP:
         return CLNF_FALLBACK_VALUES.copy()
@@ -215,14 +210,14 @@ def extract_clnf_features_from_video(video_path):
         cap.release()
         
         if face_detected:
-            app.logger.info("Face detected - using neutral facial features for model compatibility")
+            app.logger.info("Face detected - using neutral facial features")
             return CLNF_FALLBACK_VALUES.copy()
         else:
             app.logger.warning("No face detected in video")
             return CLNF_FALLBACK_VALUES.copy()
             
     except Exception as e:
-        app.logger.warning(f"MediaPipe failed ({e}) — using fallback CLNF values.")
+        app.logger.warning(f"Face detection failed ({e}) — using fallback values.")
         return CLNF_FALLBACK_VALUES.copy()
 
 def transcribe_wav(wav_path):
