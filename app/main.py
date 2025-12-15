@@ -27,14 +27,14 @@ STT_SKIP          = os.getenv("STT_SKIP", "0") == "1"
 STT_TIMEOUT       = float(os.getenv("STT_TIMEOUT", "7.0"))          # seconds
 
 QUESTIONS = [
-    "hi i'm ellie thanks for coming in today",
-    "i was created to talk to people in a safe and secure environment",
-    "think of me as a friend i don't judge i can't i'm a computer",
-    "i'm here to learn about people and would love to learn about you",
-    "i'll ask a few questions to get us started and please feel free to tell me anything",
-    "how are you doing today",
-    "that's good",
-    "where are you from originally",
+    "Hello! Thank you for being here. How are you feeling today?",
+    "Can you tell me about your sleep patterns lately? Are you sleeping well?",
+    "What activities or hobbies have you been enjoying recently?",
+    "How would you describe your energy levels throughout the day?",
+    "Have you been feeling connected to friends or family lately?",
+    "What thoughts tend to occupy your mind when you're alone?",
+    "How do you typically cope when you're feeling stressed or down?",
+    "Is there anything else you'd like to share about how you've been doing lately?",
 ]
 
 SR_RATE = 16000    # audio sample rate we convert to

@@ -141,14 +141,14 @@ def main():
     base = Path(__file__).resolve().parent.parent
 
     questions = [
-        "hi i'm ellie thanks for coming in today",
-        "i was created to talk to people in a safe and secure environment",
-        "think of me as a friend i don't judge i can't i'm a computer",
-        "i'm here to learn about people and would love to learn about you",
-        "i'll ask a few questions to get us started and please feel free to tell me anything your answers are totally confidential",
-        "how are you doing today",
-        "that's good",
-        "where are you from originally"
+        "Hello! Thank you for being here. How are you feeling today?",
+        "Can you tell me about your sleep patterns lately? Are you sleeping well?",
+        "What activities or hobbies have you been enjoying recently?",
+        "How would you describe your energy levels throughout the day?",
+        "Have you been feeling connected to friends or family lately?",
+        "What thoughts tend to occupy your mind when you're alone?",
+        "How do you typically cope when you're feeling stressed or down?",
+        "Is there anything else you'd like to share about how you've been doing lately?",
     ]
 
     top100     = joblib.load(base/'models'/'top100_features.joblib')
