@@ -179,15 +179,20 @@ OPENFACE_68_INDICES = [
 
 def extract_clnf_features_from_video(video_path):
     """
-    Use MediaPipe Face Mesh to extract 68 facial landmarks (136 features: x, y).
-    Falls back to zeros on failure.
+    Extract facial features from video using MediaPipe for face detection,
+    but return scaler-centered values for model compatibility.
+    
+    Note: The model was trained on OpenFace CLNF features which are incompatible
+    with MediaPipe Face Mesh. We detect if a face is present and return 
+    scaler-centered values (treating facial features as "neutral/average").
+    This allows the model to rely on audio and text features for predictions.
     """
     if OPENFACE_SKIP:
-        return np.zeros(136, dtype=np.float32)
+        return CLNF_FALLBACK_VALUES.copy()
 
     try:
         cap = cv2.VideoCapture(video_path)
-        all_landmarks = []
+        face_detected = False
         frame_count = 0
         max_frames = 30
         
@@ -204,26 +209,21 @@ def extract_clnf_features_from_video(video_path):
             results = face_mesh.process(rgb_frame)
             
             if results.multi_face_landmarks:
-                landmarks = results.multi_face_landmarks[0].landmark
-                frame_landmarks = []
-                for idx in OPENFACE_68_INDICES[:68]:
-                    if idx < len(landmarks):
-                        frame_landmarks.extend([landmarks[idx].x, landmarks[idx].y])
-                    else:
-                        frame_landmarks.extend([0.0, 0.0])
-                all_landmarks.append(frame_landmarks)
+                face_detected = True
+                break
         
         cap.release()
         
-        if all_landmarks:
-            mean_landmarks = np.mean(all_landmarks, axis=0).astype(np.float32)
-            return mean_landmarks
+        if face_detected:
+            app.logger.info("Face detected - using neutral facial features for model compatibility")
+            return CLNF_FALLBACK_VALUES.copy()
         else:
-            return np.zeros(136, dtype=np.float32)
+            app.logger.warning("No face detected in video")
+            return CLNF_FALLBACK_VALUES.copy()
             
     except Exception as e:
-        app.logger.warning(f"MediaPipe failed ({e}) — returning zeros for CLNF.")
-        return np.zeros(136, dtype=np.float32)
+        app.logger.warning(f"MediaPipe failed ({e}) — using fallback CLNF values.")
+        return CLNF_FALLBACK_VALUES.copy()
 
 def transcribe_wav(wav_path):
     # Allow skipping STT on environments without fast/consistent STT availability
