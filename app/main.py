@@ -422,6 +422,7 @@ def finalize():
         
         # Analyze text content for depression indicators
         # Get all transcripts from this session
+        sess = SESS.get(sid, {})
         all_text = " ".join(sess.get("transcripts", [])).lower()
         
         # Depression indicator keywords
