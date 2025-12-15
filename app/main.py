@@ -538,6 +538,6 @@ if __name__ == "__main__":
     of = os.environ.get("OPENFACE_EXE")
     if of:
         os.environ["PATH"] = os.pathsep + os.path.dirname(of) + os.environ.get("PATH", "")
-    # use PORT from env for Render/Railway, default 7860 locally
-    port = int(os.getenv("PORT", "7860"))
+    # use PORT from env, default 5000 for Replit
+    port = int(os.getenv("PORT", "5000"))
     app.run(host="0.0.0.0", port=port, debug=True)
