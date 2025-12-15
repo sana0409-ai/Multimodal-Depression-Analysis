@@ -344,6 +344,10 @@ def segment():
         emb = get_text_embedding(transcript)             # (384,)
         t_emb1 = time.perf_counter()
 
+        # Debug: print what was extracted
+        print(f"Q{qidx} transcript: '{transcript[:100] if transcript else '[EMPTY]'}'")
+        print(f"Q{qidx} gemaps range: [{c.min():.4f}, {c.max():.4f}], emb non-zero: {np.count_nonzero(emb)}")
+        
         vec = np.concatenate([c, fform, clnf, emb], axis=0).astype(np.float32)  # per-seg vector
         sess = SESS.setdefault(sid, {"qvecs": []})
         sess["qvecs"].append(vec)
@@ -386,18 +390,33 @@ def finalize():
         name2val = dict(zip(names, flat))
 
         # build feature vector in training order (top100_names)
-        # For missing features, use scaler center value instead of 0.0 to avoid bias
+        # Only use scaler center for TRULY missing features (not in name2val)
+        # Keep actual extracted values even if they're zero
         x = np.zeros((1, 100), dtype=np.float32)
+        missing_count = 0
+        audio_feats_used = 0
+        text_feats_used = 0
+        
         for i, n in enumerate(top100_names):
-            val = name2val.get(n, None)
-            if val is not None and val != 0.0:
-                x[0, i] = val
+            parts = n.split('_')
+            fi = int(parts[1][1:]) if len(parts) == 2 else 0
+            
+            if n in name2val:
+                x[0, i] = name2val[n]
+                # Count feature types
+                if fi <= 90:  # audio + formants
+                    audio_feats_used += 1
+                elif fi > 226:  # text embeddings
+                    text_feats_used += 1
             else:
-                # Use scaler center as fallback for missing/zero features
+                # Feature not available (missing question) - use scaler center
                 x[0, i] = scaler.center_[i]
+                missing_count += 1
 
         # Debug: log feature statistics
-        non_zero = np.count_nonzero(x)
+        non_zero = np.sum(np.abs(x) > 1e-6)  # count non-trivial values
+        print(f"Finalize DEBUG: Q={Q}, D={D}, missing={missing_count}/100, audio_used={audio_feats_used}, text_used={text_feats_used}")
+        print(f"Feature stats: non_zero={non_zero}/100, x_mean={x.mean():.4f}, x_std={x.std():.4f}")
         app.logger.info(f"Finalize: Q={Q}, D={D}, non_zero_features={non_zero}/100, x_mean={x.mean():.4f}, x_std={x.std():.4f}")
         
         xs = scaler.transform(x)
