@@ -349,8 +349,9 @@ def segment():
         print(f"Q{qidx} gemaps range: [{c.min():.4f}, {c.max():.4f}], emb non-zero: {np.count_nonzero(emb)}")
         
         vec = np.concatenate([c, fform, clnf, emb], axis=0).astype(np.float32)  # per-seg vector
-        sess = SESS.setdefault(sid, {"qvecs": []})
+        sess = SESS.setdefault(sid, {"qvecs": [], "transcripts": []})
         sess["qvecs"].append(vec)
+        sess["transcripts"].append(transcript)
 
         # cleanup
         for p in [tmp_video.name, tmp_wav.name]:
@@ -419,6 +420,36 @@ def finalize():
         print(f"Feature stats: non_zero={non_zero}/100, x_mean={x.mean():.4f}, x_std={x.std():.4f}")
         app.logger.info(f"Finalize: Q={Q}, D={D}, non_zero_features={non_zero}/100, x_mean={x.mean():.4f}, x_std={x.std():.4f}")
         
+        # Analyze text content for depression indicators
+        # Get all transcripts from this session
+        all_text = " ".join(sess.get("transcripts", [])).lower()
+        
+        # Depression indicator keywords
+        negative_words = [
+            "sad", "depressed", "hopeless", "worthless", "empty", "numb",
+            "tired", "exhausted", "fatigue", "no energy", "low energy",
+            "alone", "lonely", "isolated", "isolation", "disconnect",
+            "anxious", "anxiety", "worried", "overthink", "overthinking",
+            "sleep", "insomnia", "can't sleep", "not sleeping",
+            "cry", "crying", "tears",
+            "don't enjoy", "no interest", "lost interest", "nothing matters",
+            "negative", "dark", "hopeless", "helpless",
+            "suicide", "die", "death", "harm", "hurt myself",
+            "burden", "failure", "hate myself", "useless"
+        ]
+        positive_words = [
+            "happy", "great", "good", "fine", "well", "wonderful", "excited",
+            "enjoying", "love", "grateful", "blessed", "positive", "optimistic",
+            "energetic", "motivated", "hopeful", "confident", "relaxed"
+        ]
+        
+        neg_count = sum(1 for word in negative_words if word in all_text)
+        pos_count = sum(1 for word in positive_words if word in all_text)
+        text_score = (neg_count - pos_count) / max(len(negative_words), 1)
+        
+        print(f"Text analysis: neg_words={neg_count}, pos_words={pos_count}, text_score={text_score:.3f}")
+        print(f"Transcript sample: '{all_text[:200]}'")
+        
         xs = scaler.transform(x)
         app.logger.info(f"After scaling: xs_mean={xs.mean():.4f}, xs_std={xs.std():.4f}")
         
@@ -427,12 +458,18 @@ def finalize():
             out = model(t)
             app.logger.info(f"Model raw logits: {out.numpy()[0]}")
             probs = torch.softmax(out, dim=1).cpu().numpy()[0]
-            p_dep = float(probs[1])
-            # Lower threshold (0.30) to compensate for bias when facial features are neutral
-            # Since 40% of features are facial and set to neutral, audio/text need less evidence
-            DEPRESSION_THRESHOLD = 0.30
+            
+            # Combine model prediction with text analysis
+            # Text analysis contributes up to 0.4 additional probability
+            text_boost = max(0, min(0.5, text_score * 2.0))  # 0 to 0.5 boost
+            p_dep = float(probs[1]) + text_boost
+            p_dep = min(1.0, p_dep)  # cap at 1.0
+            
+            print(f"Model p_dep={probs[1]:.4f}, text_boost={text_boost:.4f}, final p_dep={p_dep:.4f}")
+            
+            DEPRESSION_THRESHOLD = 0.35
             label = "Depressed" if p_dep > DEPRESSION_THRESHOLD else "Not Depressed"
-            app.logger.info(f"Prediction: {label}, probs=[{probs[0]:.4f}, {probs[1]:.4f}], threshold={DEPRESSION_THRESHOLD}")
+            app.logger.info(f"Prediction: {label}, probs=[{1-p_dep:.4f}, {p_dep:.4f}], threshold={DEPRESSION_THRESHOLD}")
 
         # drop session
         SESS.pop(sid, None)
