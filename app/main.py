@@ -461,21 +461,42 @@ def finalize():
             probs = torch.softmax(out, dim=1).cpu().numpy()[0]
             
             # Combine model prediction with text analysis
-            # Text analysis contributes up to 0.4 additional probability
+            # Text analysis contributes up to 0.5 additional probability
             text_boost = max(0, min(0.5, text_score * 2.0))  # 0 to 0.5 boost
-            p_dep = float(probs[1]) + text_boost
-            p_dep = min(1.0, p_dep)  # cap at 1.0
             
-            print(f"Model p_dep={probs[1]:.4f}, text_boost={text_boost:.4f}, final p_dep={p_dep:.4f}")
+            # For positive responses, give a slight boost for positive words
+            pos_boost = min(0.15, pos_count * 0.03)  # up to 0.15 boost for many positive words
+            
+            # Calculate depression probability
+            p_dep = float(probs[1]) + text_boost
+            p_dep = min(0.95, max(0.05, p_dep))  # keep between 5% and 95% for realistic uncertainty
+            
+            # Calculate confidence based on how clear the signals are
+            signal_strength = abs(neg_count - pos_count) / max(neg_count + pos_count, 1)
+            base_confidence = 0.65 + (signal_strength * 0.25)  # 65% to 90% based on clarity
+            
+            # If positive words dominate, lower p_dep further
+            if pos_count > neg_count:
+                p_dep = max(0.05, p_dep - pos_boost)
+            
+            print(f"Model p_dep={probs[1]:.4f}, text_boost={text_boost:.4f}, pos_boost={pos_boost:.4f}")
+            print(f"Signal strength={signal_strength:.3f}, base_confidence={base_confidence:.3f}, final p_dep={p_dep:.4f}")
             
             DEPRESSION_THRESHOLD = 0.35
             label = "Depressed" if p_dep > DEPRESSION_THRESHOLD else "Not Depressed"
-            app.logger.info(f"Prediction: {label}, probs=[{1-p_dep:.4f}, {p_dep:.4f}], threshold={DEPRESSION_THRESHOLD}")
+            
+            # Calculate display confidence - shows how confident we are in the prediction
+            if label == "Depressed":
+                confidence = min(0.90, 0.5 + (p_dep - DEPRESSION_THRESHOLD) * 1.5)  # 50-90%
+            else:
+                confidence = min(0.90, base_confidence + (DEPRESSION_THRESHOLD - p_dep) * 0.5)  # up to 90%
+            
+            app.logger.info(f"Prediction: {label}, p_dep={p_dep:.4f}, confidence={confidence:.4f}")
 
         # drop session
         SESS.pop(sid, None)
 
-        return jsonify(p_depressed=p_dep, label=label, probabilities=[float(probs[0]), float(probs[1])])
+        return jsonify(p_depressed=p_dep, label=label, confidence=confidence, probabilities=[1-p_dep, p_dep])
     except Exception as e:
         app.logger.exception("finalize_failed")
         return jsonify(error="finalize_failed", message=str(e)), 500
