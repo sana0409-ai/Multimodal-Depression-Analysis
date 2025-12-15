@@ -209,39 +209,32 @@ def transcribe_wav(wav_path):
     except Exception:
         return ""
 
-# ----- HF Embeddings (offload to Inference API) -----
-HF_MODEL = os.getenv("HF_EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
-HF_API_TOKEN = os.getenv("HF_API_TOKEN", None)
+# ----- Text Embeddings (local sentence-transformers) -----
+from sentence_transformers import SentenceTransformer
 EMB_DIM = 384  # MiniLM-L6-v2
+
+try:
+    EMBED_MODEL = SentenceTransformer('all-MiniLM-L6-v2')
+    app.logger.info("Loaded sentence-transformers model successfully")
+except Exception as e:
+    EMBED_MODEL = None
+    app.logger.warning(f"Failed to load sentence-transformers: {e}")
 
 def get_text_embedding(text: str) -> np.ndarray:
     """
-    Calls HF Inference API for embeddings. Returns a 384-dim vector.
-    Falls back to zeros on error or missing token so the app keeps running.
+    Uses local sentence-transformers for embeddings. Returns a 384-dim vector.
+    Falls back to zeros on error so the app keeps running.
     """
     if not text or not text.strip():
         return np.zeros(EMB_DIM, dtype=np.float32)
-    if not HF_API_TOKEN:
+    if EMBED_MODEL is None:
         return np.zeros(EMB_DIM, dtype=np.float32)
 
-    url = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{HF_MODEL}"
-    headers = {"Authorization": f"Bearer {HF_API_TOKEN}"}
     try:
-        resp = requests.post(url, headers=headers, json={"inputs": text, "truncate": True}, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-        # mean pool if token-level output
-        if isinstance(data, list) and data and isinstance(data[0], list):
-            vec = np.array(data, dtype=np.float32).mean(axis=0)
-        else:
-            vec = np.array(data, dtype=np.float32)
-        if vec.shape[0] < EMB_DIM:
-            vec = np.concatenate([vec, np.zeros(EMB_DIM - vec.shape[0], dtype=np.float32)])
-        elif vec.shape[0] > EMB_DIM:
-            vec = vec[:EMB_DIM]
+        vec = EMBED_MODEL.encode(text, convert_to_numpy=True)
         return vec.astype(np.float32)
     except Exception as e:
-        app.logger.warning(f"HF embedding failed: {e}")
+        app.logger.warning(f"Embedding failed: {e}")
         return np.zeros(EMB_DIM, dtype=np.float32)
 
 # ---------- routes ----------
@@ -264,7 +257,7 @@ def health():
         openface_timeout=OPENFACE_TIMEOUT,
         openface_skip=OPENFACE_SKIP,
         stt_skip=STT_SKIP,
-        hf_embeddings=bool(HF_API_TOKEN),
+        embeddings_ready=EMBED_MODEL is not None,
     )
 
 @app.get("/healthz")
