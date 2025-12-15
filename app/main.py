@@ -386,7 +386,15 @@ def finalize():
         name2val = dict(zip(names, flat))
 
         # build feature vector in training order (top100_names)
-        x = np.array([name2val.get(n, 0.0) for n in top100_names], dtype=np.float32).reshape(1, -1)
+        # For missing features, use scaler center value instead of 0.0 to avoid bias
+        x = np.zeros((1, 100), dtype=np.float32)
+        for i, n in enumerate(top100_names):
+            val = name2val.get(n, None)
+            if val is not None and val != 0.0:
+                x[0, i] = val
+            else:
+                # Use scaler center as fallback for missing/zero features
+                x[0, i] = scaler.center_[i]
 
         # Debug: log feature statistics
         non_zero = np.count_nonzero(x)
