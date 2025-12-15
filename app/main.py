@@ -357,13 +357,21 @@ def finalize():
         # build feature vector in training order (top100_names)
         x = np.array([name2val.get(n, 0.0) for n in top100_names], dtype=np.float32).reshape(1, -1)
 
+        # Debug: log feature statistics
+        non_zero = np.count_nonzero(x)
+        app.logger.info(f"Finalize: Q={Q}, D={D}, non_zero_features={non_zero}/100, x_mean={x.mean():.4f}, x_std={x.std():.4f}")
+        
         xs = scaler.transform(x)
+        app.logger.info(f"After scaling: xs_mean={xs.mean():.4f}, xs_std={xs.std():.4f}")
+        
         t  = torch.from_numpy(xs).float()
         with torch.no_grad():
             out = model(t)
+            app.logger.info(f"Model raw logits: {out.numpy()[0]}")
             probs = torch.softmax(out, dim=1).cpu().numpy()[0]
             p_dep = float(probs[1])
             label = "Depressed" if p_dep > 0.5 else "Not Depressed"
+            app.logger.info(f"Prediction: {label}, probs=[{probs[0]:.4f}, {probs[1]:.4f}]")
 
         # drop session
         SESS.pop(sid, None)
