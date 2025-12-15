@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mental Wellness Check</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --primary: #5B8A9A;
+      --primary-light: #7BA3B0;
+      --primary-dark: #3D6B7A;
+      --accent: #A8D4E6;
+      --bg-gradient-start: #E8F4F8;
+      --bg-gradient-end: #F5E6E8;
+      --card-bg: rgba(255,255,255,0.85);
+      --text-primary: #2C3E50;
+      --text-secondary: #5D6D7E;
+      --text-muted: #8E99A4;
+      --success: #6AAB9C;
+      --warning: #E8B86D;
+      --border: rgba(91,138,154,0.15);
+      --shadow: 0 8px 32px rgba(91,138,154,0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .header-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      box-shadow: 0 4px 20px rgba(91,138,154,0.25);
+    }
+
+    .header-icon svg {
+      width: 32px;
+      height: 32px;
+      fill: white;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    .progress-section {
+      margin-bottom: 24px;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .progress-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .progress-count {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .progress-bar {
+      height: 6px;
+      background: rgba(91,138,154,0.15);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+
+    .question-card {
+      text-align: center;
+    }
+
+    .question-number {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    .question-text {
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--text-primary);
+      line-height: 1.5;
+      margin-bottom: 24px;
+      min-height: 60px;
+    }
+
+    .video-container {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto 24px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: linear-gradient(135deg, #d1e8ed 0%, #e8d8db 100%);
+      aspect-ratio: 4/3;
+    }
+
+    .video-container video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 16px;
+    }
+
+    .video-placeholder {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+    }
+
+    .video-placeholder svg {
+      width: 48px;
+      height: 48px;
+      fill: var(--text-muted);
+      margin-bottom: 12px;
+      opacity: 0.6;
+    }
+
+    .video-placeholder span {
+      font-size: 14px;
+    }
+
+    .recording-indicator {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(220, 53, 69, 0.9);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .recording-indicator.active {
+      opacity: 1;
+    }
+
+    .recording-dot {
+      width: 8px;
+      height: 8px;
+      background: white;
+      border-radius: 50%;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 14px 32px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(91,138,154,0.3);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(91,138,154,0.4);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(91,138,154,0.08);
+    }
+
+    .btn-secondary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .log-section {
+      background: rgba(91,138,154,0.04);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 20px;
+    }
+
+    .log-header {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+
+    .log-content {
+      font-size: 13px;
+      color: var(--text-secondary);
+      max-height: 120px;
+      overflow-y: auto;
+      line-height: 1.8;
+    }
+
+    .log-entry {
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(91,138,154,0.08);
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .result-card {
+      text-align: center;
+      display: none;
+    }
+
+    .result-card.visible {
+      display: block;
+    }
+
+    .result-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+    }
+
+    .result-icon.positive {
+      background: linear-gradient(135deg, var(--success) 0%, #8EC5B8 100%);
+    }
+
+    .result-icon.negative {
+      background: linear-gradient(135deg, var(--warning) 0%, #F0C987 100%);
+    }
+
+    .result-icon svg {
+      width: 40px;
+      height: 40px;
+      fill: white;
+    }
+
+    .result-title {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .result-message {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 400px;
+      margin: 0 auto 20px;
+    }
+
+    .result-score {
+      display: inline-block;
+      background: rgba(91,138,154,0.1);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--primary-dark);
+    }
+
+    .disclaimer {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 24px;
+      padding: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 480px) {
+      .container { padding: 20px 16px; }
+      h1 { font-size: 24px; }
+      .card { padding: 20px; }
+      .question-text { font-size: 18px; }
+      .btn { padding: 12px 24px; font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      </div>
+      <h1>Mental Wellness Check</h1>
+      <p class="subtitle">A confidential space for self-reflection. Take your time responding to each prompt.</p>
+    </div>
+
+    <div class="card" id="mainCard">
+      <div class="progress-section">
+        <div class="progress-header">
+          <span class="progress-label">Progress</span>
+          <span class="progress-count"><span id="progressNum">1</span> of {{nq}}</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill" style="width: 12.5%"></div>
+        </div>
+      </div>
+
+      <div class="question-card" id="questionCard">
+        <div class="question-number">Question <span id="qnum">1</span></div>
+        <div class="question-text" id="qtext"></div>
+
+        <div class="video-container">
+          <div class="video-placeholder" id="videoPlaceholder">
+            <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 13h-3v3H9v-3H6v-2h3V8h2v3h3v2z"/></svg>
+            <span>Camera preview will appear here</span>
+          </div>
+          <video id="preview" autoplay muted playsinline></video>
+          <div class="recording-indicator" id="recordingIndicator">
+            <div class="recording-dot"></div>
+            <span>Recording</span>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn btn-primary" id="btn">Begin Recording</button>
+          <button class="btn btn-secondary" id="skip">Skip Question</button>
+        </div>
+      </div>
+
+      <div class="result-card" id="resultCard">
+        <div class="result-icon" id="resultIcon">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+        </div>
+        <h2 class="result-title" id="resultTitle">Assessment Complete</h2>
+        <p class="result-message" id="resultMessage">Thank you for completing this wellness check.</p>
+        <div class="result-score" id="resultScore"></div>
+      </div>
+
+      <div class="log-section">
+        <div class="log-header">Activity Log</div>
+        <div class="log-content" id="log"></div>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      This tool is for research and educational purposes only. It is not a substitute for professional mental health evaluation.<br/>
+      If you're struggling, please reach out to a healthcare provider or call the <strong>988 Suicide & Crisis Lifeline</strong> (call or text 988).
+    </div>
+  </div>
+
+  <script>
+    const QUESTIONS = {{questions|tojson}};
+    const SEC = {{secs}};
+    const TOTAL = QUESTIONS.length;
+    const SID = crypto.randomUUID();
+    let idx = 0, mediaStream = null, busy = false;
+
+    const qnum = document.getElementById('qnum');
+    const qtext = document.getElementById('qtext');
+    const btn = document.getElementById('btn');
+    const skip = document.getElementById('skip');
+    const log = document.getElementById('log');
+    const preview = document.getElementById('preview');
+    const progressNum = document.getElementById('progressNum');
+    const progressFill = document.getElementById('progressFill');
+    const videoPlaceholder = document.getElementById('videoPlaceholder');
+    const recordingIndicator = document.getElementById('recordingIndicator');
+    const questionCard = document.getElementById('questionCard');
+    const resultCard = document.getElementById('resultCard');
+    const resultIcon = document.getElementById('resultIcon');
+    const resultTitle = document.getElementById('resultTitle');
+    const resultMessage = document.getElementById('resultMessage');
+    const resultScore = document.getElementById('resultScore');
+
+    function setQ() {
+      qnum.textContent = (idx + 1);
+      progressNum.textContent = (idx + 1);
+      qtext.textContent = QUESTIONS[idx];
+      progressFill.style.width = ((idx + 1) / TOTAL * 100) + '%';
+    }
+    setQ();
+
+    async function getStream() {
+      if (!mediaStream) {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: true
+        });
+        preview.srcObject = mediaStream;
+        videoPlaceholder.classList.add('hidden');
+      }
+      return mediaStream;
+    }
+
+    function appendLog(msg) {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = msg;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    async function recordOnce() {
+      if (busy) return;
+      busy = true;
+      btn.disabled = true;
+      skip.disabled = true;
+      btn.textContent = 'Recording...';
+
+      try {
+        const stream = await getStream();
+        const rec = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8,opus' });
+        let chunks = [];
+        rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+        rec.start();
+        recordingIndicator.classList.add('active');
+        appendLog('Recording your response...');
+
+        await new Promise(r => setTimeout(r, SEC * 1000));
+        rec.stop();
+        recordingIndicator.classList.remove('active');
+        await new Promise(r => rec.onstop = r);
+
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        appendLog('Processing your response...');
+        btn.textContent = 'Processing...';
+
+        const fd = new FormData();
+        fd.append('sid', SID);
+        fd.append('qidx', idx);
+        fd.append('file', blob, 'seg.webm');
+
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 30000);
+
+        let ok = false;
+        try {
+          const res = await fetch('/segment', { method: 'POST', body: fd, signal: ctrl.signal });
+          clearTimeout(t);
+          const j = await res.json().catch(() => ({}));
+          ok = res.ok && j && j.ok;
+          if (ok) appendLog('Response saved (' + j.count + '/' + TOTAL + ')');
+          else appendLog('Could not save response, moving on...');
+        } catch (err) {
+          clearTimeout(t);
+          appendLog('Connection issue, moving on...');
+        }
+
+        idx++;
+        if (idx < TOTAL) {
+          setQ();
+        } else {
+          finalize();
+        }
+      } finally {
+        busy = false;
+        btn.disabled = false;
+        skip.disabled = false;
+        btn.textContent = 'Begin Recording';
+      }
+    }
+
+    async function finalize() {
+      questionCard.classList.add('hidden');
+      appendLog('Analyzing your responses...');
+
+      try {
+        const res = await fetch('/finalize?sid=' + SID);
+        const j = await res.json().catch(() => ({}));
+
+        if (!res.ok || !j) {
+          appendLog('Analysis could not be completed.');
+          resultTitle.textContent = 'Assessment Incomplete';
+          resultMessage.textContent = 'We were unable to complete the analysis. Please try again.';
+          resultScore.textContent = '';
+        } else {
+          const isDepressed = j.label === 'Depressed';
+          resultIcon.className = 'result-icon ' + (isDepressed ? 'negative' : 'positive');
+          resultIcon.innerHTML = isDepressed
+            ? '<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>'
+            : '<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>';
+
+          resultTitle.textContent = isDepressed ? 'Consider Seeking Support' : 'Positive Indicators';
+          resultMessage.textContent = isDepressed
+            ? 'Based on your responses, it may be helpful to speak with a mental health professional. Remember, seeking help is a sign of strength.'
+            : 'Your responses suggest positive mental wellness patterns. Continue prioritizing your mental health.';
+          resultScore.textContent = 'Confidence: ' + (j.p_depressed * 100).toFixed(1) + '%';
+          appendLog('Analysis complete: ' + j.label);
+        }
+      } catch (err) {
+        appendLog('Error during analysis');
+        resultTitle.textContent = 'Assessment Error';
+        resultMessage.textContent = 'An error occurred. Please refresh and try again.';
+      }
+
+      resultCard.classList.add('visible');
+    }
+
+    btn.onclick = recordOnce;
+    skip.onclick = () => {
+      if (!busy) {
+        appendLog('Question skipped');
+        idx++;
+        if (idx < TOTAL) setQ();
+        else finalize();
+      }
+    };
+  </script>
+</body>
+</html>

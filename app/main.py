@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template
 import os, io, time, tempfile, subprocess, uuid, json, shutil
 import numpy as np
 import pandas as pd
@@ -209,128 +209,6 @@ def transcribe_wav(wav_path):
     except Exception:
         return ""
 
-# ---------- UI ----------
-INDEX_HTML = """
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8"/>
-  <title>Depression Model Live</title>
-  <style>
-    body{font-family:system-ui,Segoe UI,Arial,sans-serif;margin:20px}
-    .q{font-size:18px;margin:10px 0}
-    button{padding:10px 16px;border-radius:10px;border:1px solid #ddd;cursor:pointer}
-    #log{white-space:pre-wrap;background:#fafafa;border:1px solid #eee;padding:10px;border-radius:8px;margin-top:12px;height:160px;overflow:auto}
-    video{width:480px;border-radius:12px;border:1px solid #eee}
-  </style>
-</head>
-<body>
-  <h2>🎥🎤 Depression Screening (demo)</h2>
-  <p>We’ll ask <b>{{nq}}</b> short questions. When you hit <b>Record</b>, we capture <b>{{secs}}s</b> of webcam + mic, upload, extract features, and move on.</p>
-
-  <div class="q"><b>Question <span id="qnum">1</span>:</b> <span id="qtext"></span></div>
-
-  <video id="preview" autoplay muted playsinline></video><br/><br/>
-  <button id="btn">Record {{secs}}s</button>
-  <button id="skip">Skip</button>
-
-  <div id="log"></div>
-
-  <script>
-    const QUESTIONS = {{questions|tojson}};
-    const SEC = {{secs}};
-    const SID = crypto.randomUUID();
-    let idx = 0, mediaStream=null, busy=false;
-
-    const qnum = document.getElementById('qnum');
-    const qtext = document.getElementById('qtext');
-    const btn = document.getElementById('btn');
-    const skip = document.getElementById('skip');
-    const log = document.getElementById('log');
-    const preview = document.getElementById('preview');
-
-    function setQ() {
-      qnum.textContent = (idx+1);
-      qtext.textContent = QUESTIONS[idx];
-    }
-    setQ();
-
-    async function getStream(){
-      if (!mediaStream) {
-        mediaStream = await navigator.mediaDevices.getUserMedia({
-          video:{ width:{ideal:320}, height:{ideal:240} },
-          audio:true
-        });
-        preview.srcObject = mediaStream;
-      }
-      return mediaStream;
-    }
-
-    function append(msg){ log.textContent += msg + "\\n"; log.scrollTop = log.scrollHeight; }
-
-    async function recordOnce(){
-      if (busy) return;
-      busy = true; btn.disabled = true; skip.disabled = true;
-
-      try {
-        const stream = await getStream();
-        const rec = new MediaRecorder(stream, {mimeType: 'video/webm;codecs=vp8,opus'});
-        let chunks = [];
-        rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
-        rec.start();
-        append("🎙️ Recording...");
-        await new Promise(r => setTimeout(r, SEC*1000));
-        rec.stop();
-        await new Promise(r => rec.onstop = r);
-        const blob = new Blob(chunks, {type: 'video/webm'});
-        append("⬆️ Uploading " + Math.round(blob.size/1024) + " KB");
-        const fd = new FormData();
-        fd.append('sid', SID);
-        fd.append('qidx', idx);
-        fd.append('file', blob, 'seg.webm');
-
-        // Abort if server stalls
-        const ctrl = new AbortController();
-        const t = setTimeout(() => ctrl.abort(), 30000);
-
-        let ok = false;
-        try {
-          const res = await fetch('/api/segment', {method:'POST', body:fd, signal: ctrl.signal});
-
-          clearTimeout(t);
-          const j = await res.json().catch(() => ({}));
-          ok = res.ok && j && j.ok;
-          if (ok) append("✅ Segment saved (" + j.count + "/" + QUESTIONS.length + ")");
-          else append("❌ Segment failed — skipping this question.");
-        } catch (err) {
-          clearTimeout(t);
-          append("❌ Upload/record error: " + err);
-        }
-
-        idx++;
-        if (idx < QUESTIONS.length) { setQ(); }
-        else { finalize(); }
-      } finally {
-        busy = false; btn.disabled = false; skip.disabled = false;
-      }
-    }
-
-    async function finalize(){
-      append("🧠 Finalizing prediction...");
-      const res = await fetch('/api/finalize?sid=' + SID);
-
-      const j = await res.json().catch(()=>({}));
-      if (!res.ok || !j) { append("❌ Finalize failed."); return; }
-      append("🎯 P(Depressed)=" + j.p_depressed.toFixed(3) + " → " + j.label);
-    }
-
-    btn.onclick = recordOnce;
-    skip.onclick = () => { if (!busy) { idx++; if (idx<QUESTIONS.length) setQ(); else finalize(); } };
-  </script>
-</body>
-</html>
-"""
-
 # ----- HF Embeddings (offload to Inference API) -----
 HF_MODEL = os.getenv("HF_EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 HF_API_TOKEN = os.getenv("HF_API_TOKEN", None)
@@ -369,7 +247,7 @@ def get_text_embedding(text: str) -> np.ndarray:
 # ---------- routes ----------
 @app.get("/")
 def ui():
-    return render_template_string(INDEX_HTML, questions=QUESTIONS, secs=SEG_SECONDS, nq=len(QUESTIONS))
+    return render_template("index.html", questions=QUESTIONS, secs=SEG_SECONDS, nq=len(QUESTIONS))
 
 @app.get("/health")
 def health():
