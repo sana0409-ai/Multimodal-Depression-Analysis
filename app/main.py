@@ -344,10 +344,6 @@ def segment():
         emb = get_text_embedding(transcript)             # (384,)
         t_emb1 = time.perf_counter()
 
-        # Debug: print what was extracted
-        print(f"Q{qidx} transcript: '{transcript[:100] if transcript else '[EMPTY]'}'")
-        print(f"Q{qidx} gemaps range: [{c.min():.4f}, {c.max():.4f}], emb non-zero: {np.count_nonzero(emb)}")
-        
         vec = np.concatenate([c, fform, clnf, emb], axis=0).astype(np.float32)  # per-seg vector
         sess = SESS.setdefault(sid, {"qvecs": [], "transcripts": []})
         sess["qvecs"].append(vec)
@@ -414,11 +410,7 @@ def finalize():
                 x[0, i] = scaler.center_[i]
                 missing_count += 1
 
-        # Debug: log feature statistics
-        non_zero = np.sum(np.abs(x) > 1e-6)  # count non-trivial values
-        print(f"Finalize DEBUG: Q={Q}, D={D}, missing={missing_count}/100, audio_used={audio_feats_used}, text_used={text_feats_used}")
-        print(f"Feature stats: non_zero={non_zero}/100, x_mean={x.mean():.4f}, x_std={x.std():.4f}")
-        app.logger.info(f"Finalize: Q={Q}, D={D}, non_zero_features={non_zero}/100, x_mean={x.mean():.4f}, x_std={x.std():.4f}")
+        app.logger.info(f"Finalize: Q={Q}, features extracted successfully")
         
         # Analyze text content for depression indicators
         # Get all transcripts from this session
@@ -448,9 +440,6 @@ def finalize():
         pos_count = sum(1 for word in positive_words if word in all_text)
         text_score = (neg_count - pos_count) / max(len(negative_words), 1)
         
-        print(f"Text analysis: neg_words={neg_count}, pos_words={pos_count}, text_score={text_score:.3f}")
-        print(f"Transcript sample: '{all_text[:200]}'")
-        
         xs = scaler.transform(x)
         app.logger.info(f"After scaling: xs_mean={xs.mean():.4f}, xs_std={xs.std():.4f}")
         
@@ -478,9 +467,6 @@ def finalize():
             # If positive words dominate, lower p_dep further
             if pos_count > neg_count:
                 p_dep = max(0.05, p_dep - pos_boost)
-            
-            print(f"Model p_dep={probs[1]:.4f}, text_boost={text_boost:.4f}, pos_boost={pos_boost:.4f}")
-            print(f"Signal strength={signal_strength:.3f}, base_confidence={base_confidence:.3f}, final p_dep={p_dep:.4f}")
             
             DEPRESSION_THRESHOLD = 0.35
             label = "Depressed" if p_dep > DEPRESSION_THRESHOLD else "Not Depressed"

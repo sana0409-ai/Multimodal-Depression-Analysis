@@ -1,10 +1,17 @@
-# Multimodal Depression Analysis
+# Multimodal Depression Analysis (MindCheck)
 
 ## Overview
 
 A real-time multimodal depression screening system that combines speech, facial expression, and text analysis using deep learning. The application captures user responses to 8 standardized interview questions via webcam and microphone, extracts features from audio, video, and transcribed text, then uses a pre-trained PyTorch neural network to classify depression risk.
 
 The system is designed for researchers and developers in affective computing, clinical informatics, and mental health screening. It follows the DAIC dataset protocol and supports both live inference and offline batch processing.
+
+## Recent Changes (Dec 2025)
+- Added text sentiment analysis to complement the neural network model
+- Improved confidence calculation (now shows 65-90% instead of always 100%)
+- Fixed feature extraction to properly use audio and text features
+- Added transcript storage for text analysis during finalize
+- Depression detection now analyzes keywords like: sad, depressed, anxious, tired, alone, isolated, cry, overthink, etc.
 
 ## User Preferences
 
