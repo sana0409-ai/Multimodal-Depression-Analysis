@@ -401,8 +401,11 @@ def finalize():
             app.logger.info(f"Model raw logits: {out.numpy()[0]}")
             probs = torch.softmax(out, dim=1).cpu().numpy()[0]
             p_dep = float(probs[1])
-            label = "Depressed" if p_dep > 0.5 else "Not Depressed"
-            app.logger.info(f"Prediction: {label}, probs=[{probs[0]:.4f}, {probs[1]:.4f}]")
+            # Lower threshold (0.30) to compensate for bias when facial features are neutral
+            # Since 40% of features are facial and set to neutral, audio/text need less evidence
+            DEPRESSION_THRESHOLD = 0.30
+            label = "Depressed" if p_dep > DEPRESSION_THRESHOLD else "Not Depressed"
+            app.logger.info(f"Prediction: {label}, probs=[{probs[0]:.4f}, {probs[1]:.4f}], threshold={DEPRESSION_THRESHOLD}")
 
         # drop session
         SESS.pop(sid, None)
