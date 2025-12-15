@@ -163,55 +163,67 @@ def extract_formants(audio_buffer, sr):
         f_list.append([f1, f2, f3])
     return np.nanmean(f_list, axis=0).astype(np.float32)  # (3,)
 
-CLNF_FALLBACK = None  # Will be set after scaler loads
+import mediapipe as mp
+import cv2
+
+mp_face_mesh = mp.solutions.face_mesh
+face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, min_detection_confidence=0.5)
+
+OPENFACE_68_INDICES = [
+    33, 246, 161, 160, 159, 158, 157, 173, 133, 155, 154, 153, 145, 144, 163, 7,
+    362, 398, 384, 385, 386, 387, 388, 466, 263, 249, 390, 373, 374, 380, 381, 382,
+    61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291,
+    78, 95, 88, 178, 87, 14, 317, 402, 318, 324, 308,
+    10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378
+]
 
 def extract_clnf_features_from_video(video_path):
     """
-    Run OpenFace FeatureExtraction with a timeout.
-    Returns a 136-dim mean (x_*, y_*) vector or fallback values on failure/timeout/skip.
+    Use MediaPipe Face Mesh to extract 68 facial landmarks (136 features: x, y).
+    Falls back to zeros on failure.
     """
-    if OPENFACE_SKIP or not shutil.which(OPENFACE_EXE):
-        if CLNF_FALLBACK is not None:
-            return CLNF_FALLBACK.copy()
+    if OPENFACE_SKIP:
         return np.zeros(136, dtype=np.float32)
 
-    out_dir = tempfile.mkdtemp()
-    mp4_to_delete = None
     try:
-        src_for_of, mp4_to_delete = ffmpeg_transcode_to_mp4(video_path)
-        subprocess.run(
-            [OPENFACE_EXE, "-f", src_for_of, "-out_dir", out_dir, "-q"],
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            timeout=OPENFACE_TIMEOUT,
-        )
-        csvs = [f for f in os.listdir(out_dir) if f.endswith(".csv")]
-        if not csvs:
+        cap = cv2.VideoCapture(video_path)
+        all_landmarks = []
+        frame_count = 0
+        max_frames = 30
+        
+        while cap.isOpened() and frame_count < max_frames:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            
+            frame_count += 1
+            if frame_count % 5 != 0:
+                continue
+                
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = face_mesh.process(rgb_frame)
+            
+            if results.multi_face_landmarks:
+                landmarks = results.multi_face_landmarks[0].landmark
+                frame_landmarks = []
+                for idx in OPENFACE_68_INDICES[:68]:
+                    if idx < len(landmarks):
+                        frame_landmarks.extend([landmarks[idx].x, landmarks[idx].y])
+                    else:
+                        frame_landmarks.extend([0.0, 0.0])
+                all_landmarks.append(frame_landmarks)
+        
+        cap.release()
+        
+        if all_landmarks:
+            mean_landmarks = np.mean(all_landmarks, axis=0).astype(np.float32)
+            return mean_landmarks
+        else:
             return np.zeros(136, dtype=np.float32)
-        df = pd.read_csv(os.path.join(out_dir, csvs[0]))
-        landmark_cols = [c for c in df.columns if c.startswith("x_") or c.startswith("y_")]
-        if not landmark_cols:
-            return np.zeros(136, dtype=np.float32)
-        return df[landmark_cols].mean(axis=0).astype(np.float32).values
-    except subprocess.TimeoutExpired:
-        app.logger.warning("OpenFace timed out — returning zeros for CLNF.")
-        return np.zeros(136, dtype=np.float32)
+            
     except Exception as e:
-        app.logger.warning(f"OpenFace failed ({e}) — returning zeros for CLNF.")
+        app.logger.warning(f"MediaPipe failed ({e}) — returning zeros for CLNF.")
         return np.zeros(136, dtype=np.float32)
-    finally:
-        try:
-            for f in os.listdir(out_dir):
-                os.remove(os.path.join(out_dir, f))
-            os.rmdir(out_dir)
-        except Exception:
-            pass
-        if mp4_to_delete and os.path.exists(mp4_to_delete):
-            try:
-                os.remove(mp4_to_delete)
-            except Exception:
-                pass
 
 def transcribe_wav(wav_path):
     # Allow skipping STT on environments without fast/consistent STT availability
@@ -278,9 +290,7 @@ def health():
         status="ok",
         selected_dim=len(top100_names),
         first_feature_names=top100_names[:5],
-        openface_present=bool(of_path),
-        openface_exe=of_path or OPENFACE_EXE,
-        openface_timeout=OPENFACE_TIMEOUT,
+        facial_extraction="mediapipe",
         openface_skip=OPENFACE_SKIP,
         stt_skip=STT_SKIP,
         embeddings_ready=EMBED_MODEL is not None,

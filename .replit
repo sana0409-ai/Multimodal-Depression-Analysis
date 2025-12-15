@@ -4,7 +4,7 @@ expertMode = true
 
 [nix]
 channel = "stable-25_05"
-packages = ["ffmpeg", "ffmpeg-full", "glibcLocales", "libsndfile"]
+packages = ["ffmpeg", "ffmpeg-full", "glibcLocales", "libsndfile", "mesa", "libGL"]
 
 [workflows]
 runButton = "Project"
