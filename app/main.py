@@ -66,6 +66,28 @@ top100_names = [str(x) for x in top100_names]
 scaler = joblib.load("models/scaler.joblib")
 
 INPUT_DIM = len(top100_names)     # 100
+
+# Compute fallback CLNF values: use scaler center for OpenFace features (91-226)
+# This makes the model treat missing facial data as "average" rather than "zero"
+def compute_clnf_fallback():
+    """Compute fallback values for CLNF features based on scaler center."""
+    # CLNF features are at indices 91-226 in the per-question feature vector
+    # For each top100 feature that's in that range, get the scaler's center value
+    clnf_vals = np.zeros(136, dtype=np.float32)
+    clnf_start, clnf_end = 91, 227
+    
+    for i, name in enumerate(top100_names):
+        parts = name.split('_')
+        if len(parts) == 2:
+            fi = int(parts[1][1:])
+            if clnf_start <= fi < clnf_end:
+                # Use scaler center value as "average"
+                clnf_idx = fi - clnf_start
+                if clnf_idx < 136 and hasattr(scaler, 'center_'):
+                    clnf_vals[clnf_idx] = scaler.center_[i]
+    return clnf_vals
+
+CLNF_FALLBACK_VALUES = compute_clnf_fallback()
 HIDDEN, DROPOUT, OUTPUT = 32, 0.2, 2
 
 model = nn.Sequential(
@@ -141,12 +163,16 @@ def extract_formants(audio_buffer, sr):
         f_list.append([f1, f2, f3])
     return np.nanmean(f_list, axis=0).astype(np.float32)  # (3,)
 
+CLNF_FALLBACK = None  # Will be set after scaler loads
+
 def extract_clnf_features_from_video(video_path):
     """
     Run OpenFace FeatureExtraction with a timeout.
-    Returns a 136-dim mean (x_*, y_*) vector or zeros on failure/timeout/skip.
+    Returns a 136-dim mean (x_*, y_*) vector or fallback values on failure/timeout/skip.
     """
     if OPENFACE_SKIP or not shutil.which(OPENFACE_EXE):
+        if CLNF_FALLBACK is not None:
+            return CLNF_FALLBACK.copy()
         return np.zeros(136, dtype=np.float32)
 
     out_dir = tempfile.mkdtemp()
