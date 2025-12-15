@@ -820,7 +820,8 @@
           resultMessage.textContent = isDepressed
             ? 'Your responses suggest it might help to talk with a mental health professional. Remember, reaching out is a sign of strength.'
             : 'Your responses show positive mental wellness patterns. Keep taking care of yourself!';
-          resultScore.textContent = 'Confidence: ' + (j.p_depressed * 100).toFixed(1) + '%';
+          const confidence = isDepressed ? j.p_depressed : (1 - j.p_depressed);
+          resultScore.textContent = 'Confidence: ' + (confidence * 100).toFixed(1) + '%';
           appendLog('Complete: ' + j.label);
         }
       } catch (err) {
