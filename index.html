@@ -1,200 +1,873 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>Depression Screening (demo)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MindCheck - Mental Wellness Screening</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
   <style>
-    body{font-family:system-ui,Segoe UI,Arial,sans-serif;margin:20px}
-    .q{font-size:18px;margin:10px 0}
-    button{padding:10px 16px;border-radius:10px;border:1px solid #ddd;cursor:pointer}
-    #log{white-space:pre-wrap;background:#fafafa;border:1px solid #eee;padding:10px;border-radius:8px;margin-top:12px;height:160px;overflow:auto}
-    video{width:480px;border-radius:12px;border:1px solid #eee}
+    :root {
+      --gradient-start: #1a1a2e;
+      --gradient-mid: #16213e;
+      --gradient-end: #0f3460;
+      --accent-primary: #e94560;
+      --accent-secondary: #00d9ff;
+      --accent-glow: rgba(0, 217, 255, 0.4);
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --text-primary: #ffffff;
+      --text-secondary: rgba(255, 255, 255, 0.7);
+      --text-muted: rgba(255, 255, 255, 0.5);
+      --success: #00d26a;
+      --warning: #ffc107;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-mid) 50%, var(--gradient-end) 100%);
+      color: var(--text-primary);
+      overflow-x: hidden;
+    }
+
+    .bg-orbs {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.4;
+      animation: float 20s ease-in-out infinite;
+    }
+
+    .orb-1 {
+      width: 400px;
+      height: 400px;
+      background: var(--accent-primary);
+      top: -100px;
+      right: -100px;
+      animation-delay: 0s;
+    }
+
+    .orb-2 {
+      width: 300px;
+      height: 300px;
+      background: var(--accent-secondary);
+      bottom: -50px;
+      left: -50px;
+      animation-delay: -5s;
+    }
+
+    .orb-3 {
+      width: 200px;
+      height: 200px;
+      background: #a855f7;
+      top: 50%;
+      left: 50%;
+      animation-delay: -10s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      25% { transform: translate(30px, -30px) scale(1.1); }
+      50% { transform: translate(-20px, 20px) scale(0.9); }
+      75% { transform: translate(20px, 10px) scale(1.05); }
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .logo-icon {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 32px rgba(233, 69, 96, 0.3);
+      animation: pulse-glow 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 8px 32px rgba(233, 69, 96, 0.3); }
+      50% { box-shadow: 0 8px 48px rgba(0, 217, 255, 0.4); }
+    }
+
+    .logo-icon svg {
+      width: 28px;
+      height: 28px;
+      fill: white;
+    }
+
+    .logo-text {
+      font-family: 'Sora', sans-serif;
+      font-size: 32px;
+      font-weight: 700;
+      background: linear-gradient(90deg, #fff 0%, var(--accent-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    h1 {
+      font-family: 'Sora', sans-serif;
+      font-size: 42px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      line-height: 1.2;
+    }
+
+    h1 span {
+      background: linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 18px;
+      color: var(--text-secondary);
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .main-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 32px;
+      border: 1px solid var(--card-border);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      margin-bottom: 24px;
+    }
+
+    .progress-section {
+      margin-bottom: 32px;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .progress-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .progress-count {
+      font-family: 'Sora', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent-secondary);
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      border-radius: 4px;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .question-section {
+      text-align: center;
+    }
+
+    .question-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+
+    .question-text {
+      font-family: 'Sora', sans-serif;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.4;
+      margin-bottom: 32px;
+      min-height: 68px;
+    }
+
+    .video-wrapper {
+      position: relative;
+      max-width: 480px;
+      margin: 0 auto 32px;
+    }
+
+    .video-container {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      background: linear-gradient(135deg, rgba(233, 69, 96, 0.2) 0%, rgba(0, 217, 255, 0.2) 100%);
+      aspect-ratio: 4/3;
+      border: 2px solid var(--card-border);
+    }
+
+    .video-container::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary), var(--accent-primary));
+      border-radius: 22px;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .video-container.recording::before {
+      opacity: 1;
+      animation: border-glow 2s linear infinite;
+    }
+
+    @keyframes border-glow {
+      0% { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+
+    .video-container video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .video-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+    }
+
+    .video-placeholder svg {
+      width: 64px;
+      height: 64px;
+      fill: var(--text-muted);
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .video-placeholder span {
+      font-size: 14px;
+    }
+
+    .recording-badge {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent-primary);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: all 0.3s;
+      box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+    }
+
+    .recording-badge.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .recording-dot {
+      width: 10px;
+      height: 10px;
+      background: white;
+      border-radius: 50%;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .timer-ring {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      width: 48px;
+      height: 48px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .timer-ring.active {
+      opacity: 1;
+    }
+
+    .timer-ring svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .timer-ring circle {
+      fill: none;
+      stroke-width: 4;
+    }
+
+    .timer-ring .bg {
+      stroke: rgba(255, 255, 255, 0.2);
+    }
+
+    .timer-ring .progress {
+      stroke: var(--accent-secondary);
+      stroke-linecap: round;
+      stroke-dasharray: 126;
+      stroke-dashoffset: 126;
+      transition: stroke-dashoffset 0.1s linear;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 16px 40px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: 'Sora', sans-serif;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-primary) 0%, #ff6b6b 100%);
+      color: white;
+      box-shadow: 0 8px 30px rgba(233, 69, 96, 0.4);
+    }
+
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--accent-secondary) 0%, #00b4d8 100%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .btn-primary:hover::before {
+      opacity: 1;
+    }
+
+    .btn-primary span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(0, 217, 255, 0.4);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-secondary);
+      border: 1px solid var(--card-border);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.15);
+      color: var(--text-primary);
+    }
+
+    .log-section {
+      margin-top: 24px;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+    }
+
+    .log-header {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+    }
+
+    .log-content {
+      max-height: 100px;
+      overflow-y: auto;
+    }
+
+    .log-entry {
+      font-size: 13px;
+      color: var(--text-secondary);
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .log-entry::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--accent-secondary);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .result-section {
+      text-align: center;
+      display: none;
+    }
+
+    .result-section.visible {
+      display: block;
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-icon {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      animation: pop 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0); }
+      100% { transform: scale(1); }
+    }
+
+    .result-icon.positive {
+      background: linear-gradient(135deg, var(--success) 0%, #4ade80 100%);
+      box-shadow: 0 8px 32px rgba(0, 210, 106, 0.4);
+    }
+
+    .result-icon.negative {
+      background: linear-gradient(135deg, var(--warning) 0%, #fb923c 100%);
+      box-shadow: 0 8px 32px rgba(255, 193, 7, 0.4);
+    }
+
+    .result-icon svg {
+      width: 48px;
+      height: 48px;
+      fill: white;
+    }
+
+    .result-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .result-message {
+      font-size: 16px;
+      color: var(--text-secondary);
+      max-width: 450px;
+      margin: 0 auto 24px;
+      line-height: 1.6;
+    }
+
+    .result-score {
+      display: inline-block;
+      padding: 12px 24px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      font-family: 'Sora', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--accent-secondary);
+    }
+
+    .footer {
+      text-align: center;
+      padding: 24px;
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .footer strong {
+      color: var(--accent-secondary);
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 600px) {
+      .container { padding: 24px 16px; }
+      h1 { font-size: 32px; }
+      .question-text { font-size: 20px; }
+      .btn { padding: 14px 28px; font-size: 15px; }
+      .logo-text { font-size: 24px; }
+    }
   </style>
 </head>
 <body>
-  <h2>🎥🎤 Depression Screening (demo)</h2>
-  <p>We’ll ask <b><span id="nq"></span></b> short questions. When you hit <b>Record</b>, we capture <b><span id="secs"></span>s</b> of webcam + mic, upload, extract features, and move on.</p>
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
 
-  <div class="q"><b>Question <span id="qnum">1</span>:</b> <span id="qtext"></span></div>
+  <div class="container">
+    <div class="header">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+        </div>
+        <span class="logo-text">MindCheck</span>
+      </div>
+      <h1>Your <span>Mental Wellness</span><br/>Starts Here</h1>
+      <p class="subtitle">A safe, confidential space to understand your mental health through quick video responses.</p>
+    </div>
 
-  <video id="preview" autoplay muted playsinline></video><br/><br/>
-  <button id="btn">Record <span id="btnsecs"></span>s</button>
-  <button id="skip">Skip</button>
-  <button id="retry" style="display:none">Retry</button>
+    <div class="main-card">
+      <div class="progress-section">
+        <div class="progress-header">
+          <span class="progress-label">Your Progress</span>
+          <span class="progress-count"><span id="progressNum">1</span> / 8</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill" style="width: 12.5%"></div>
+        </div>
+      </div>
 
-  <div id="log"></div>
+      <div class="question-section" id="questionSection">
+        <div class="question-badge">Question <span id="qnum">1</span></div>
+        <div class="question-text" id="qtext"></div>
+
+        <div class="video-wrapper">
+          <div class="video-container" id="videoContainer">
+            <div class="video-placeholder" id="videoPlaceholder">
+              <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+              <span>Click record to enable camera</span>
+            </div>
+            <video id="preview" autoplay muted playsinline></video>
+            <div class="recording-badge" id="recordingBadge">
+              <div class="recording-dot"></div>
+              <span>REC</span>
+            </div>
+            <div class="timer-ring" id="timerRing">
+              <svg viewBox="0 0 48 48">
+                <circle class="bg" cx="24" cy="24" r="20"/>
+                <circle class="progress" id="timerProgress" cx="24" cy="24" r="20"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn btn-primary" id="btn"><span>Start Recording</span></button>
+          <button class="btn btn-secondary" id="skip">Skip</button>
+        </div>
+      </div>
+
+      <div class="result-section" id="resultSection">
+        <div class="result-icon" id="resultIcon">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+        </div>
+        <h2 class="result-title" id="resultTitle">Assessment Complete</h2>
+        <p class="result-message" id="resultMessage">Thank you for completing this wellness check.</p>
+        <div class="result-score" id="resultScore"></div>
+      </div>
+
+      <div class="log-section">
+        <div class="log-header">Activity</div>
+        <div class="log-content" id="log"></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      This tool is for research purposes only and not a medical diagnosis.<br/>
+      If you need support, call the <strong>988 Suicide & Crisis Lifeline</strong> (call or text 988).
+    </div>
+  </div>
 
   <script>
-    // Prefer direct Render on Vercel to avoid the 30s proxy timeout on large uploads
-    // You can override with: window.API_BASE = 'https://<your-render-service>.onrender.com'
-    const defaultApiBase = (location.hostname.endsWith('.vercel.app'))
-      ? 'https://multimodal-depression-analysis-1.onrender.com'
-      : 'https://multimodal-depression-analysis-1.onrender.com';
-    const API_BASE = (window.API_BASE || defaultApiBase);
-    // Same constants your Flask template used
+    const API_BASE = 'https://multimodal-depression-analysis-1.onrender.com';
     const QUESTIONS = [
-      "hi i'm ellie thanks for coming in today",
-      "i was created to talk to people in a safe and secure environment",
-      "think of me as a friend i don't judge i can't i'm a computer",
-      "i'm here to learn about people and would love to learn about you",
-      "i'll ask a few questions to get us started and please feel free to tell me anything",
-      "how are you doing today",
-      "that's good",
-      "where are you from originally"
+      "Hi, I'm Ellie. Thanks for coming in today.",
+      "I was created to talk to people in a safe and secure environment.",
+      "Think of me as a friend. I don't judge. I can't. I'm a computer.",
+      "I'm here to learn about people and would love to learn about you.",
+      "I'll ask a few questions to get us started. Please feel free to tell me anything.",
+      "How are you doing today?",
+      "That's good to hear.",
+      "Where are you from originally?"
     ];
     const SEC = 5;
-
-    document.getElementById('nq').textContent = QUESTIONS.length;
-    document.getElementById('secs').textContent = SEC;
-    document.getElementById('btnsecs').textContent = SEC;
-
-    const SID = (crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
-    let idx = 0, mediaStream=null, busy=false;
+    const TOTAL = QUESTIONS.length;
+    const SID = crypto.randomUUID();
+    let idx = 0, mediaStream = null, busy = false;
 
     const qnum = document.getElementById('qnum');
     const qtext = document.getElementById('qtext');
-  const btn = document.getElementById('btn');
-  const skip = document.getElementById('skip');
-  const retry = document.getElementById('retry');
+    const btn = document.getElementById('btn');
+    const skip = document.getElementById('skip');
     const log = document.getElementById('log');
     const preview = document.getElementById('preview');
+    const progressNum = document.getElementById('progressNum');
+    const progressFill = document.getElementById('progressFill');
+    const videoPlaceholder = document.getElementById('videoPlaceholder');
+    const videoContainer = document.getElementById('videoContainer');
+    const recordingBadge = document.getElementById('recordingBadge');
+    const timerRing = document.getElementById('timerRing');
+    const timerProgress = document.getElementById('timerProgress');
+    const questionSection = document.getElementById('questionSection');
+    const resultSection = document.getElementById('resultSection');
+    const resultIcon = document.getElementById('resultIcon');
+    const resultTitle = document.getElementById('resultTitle');
+    const resultMessage = document.getElementById('resultMessage');
+    const resultScore = document.getElementById('resultScore');
 
     function setQ() {
-      qnum.textContent = (idx+1);
+      qnum.textContent = (idx + 1);
+      progressNum.textContent = (idx + 1);
       qtext.textContent = QUESTIONS[idx];
+      progressFill.style.width = ((idx + 1) / TOTAL * 100) + '%';
     }
     setQ();
 
-    async function getStream(){
+    async function getStream() {
       if (!mediaStream) {
         mediaStream = await navigator.mediaDevices.getUserMedia({
-          video:{ width:{ideal:320}, height:{ideal:240}, frameRate:{ideal:15, max:15} },
-          audio:true
+          video: { width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: true
         });
         preview.srcObject = mediaStream;
+        videoPlaceholder.classList.add('hidden');
       }
       return mediaStream;
     }
 
-    function append(msg){ log.textContent += msg + "\n"; log.scrollTop = log.scrollHeight; }
+    function appendLog(msg) {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = msg;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    }
 
-    // Warm up backend (Render cold starts can take >30s)
-    (async function warmup(){
-      try {
-        const res = await fetch(`${API_BASE}/health`, { method: 'GET' });
-        const h = await res.json().catch(()=>({}));
-        const of = h && h.openface_present ? 'yes' : 'no';
-        const stt = h && h.stt_skip===false ? 'enabled' : 'disabled';
-        const emb = h && h.hf_embeddings ? 'enabled' : 'disabled';
-        append(`⚙️ Backend warmed. OpenFace: ${of} • STT: ${stt} • Embeddings: ${emb}`);
-      } catch {
-        append('⚙️ Backend warmed.');
-      }
-    })();
+    function animateTimer(duration) {
+      const circumference = 126;
+      let elapsed = 0;
+      const interval = setInterval(() => {
+        elapsed += 100;
+        const progress = elapsed / (duration * 1000);
+        timerProgress.style.strokeDashoffset = circumference * (1 - progress);
+        if (elapsed >= duration * 1000) {
+          clearInterval(interval);
+        }
+      }, 100);
+    }
 
-    async function recordOnce(){
+    async function recordOnce() {
       if (busy) return;
-      busy = true; btn.disabled = true; skip.disabled = true;
-      retry.style.display = 'none';
+      busy = true;
+      btn.disabled = true;
+      skip.disabled = true;
+      btn.querySelector('span').textContent = 'Recording...';
 
       try {
         const stream = await getStream();
-        // Lower bitrate to shrink upload size and speed up processing on free tier
-        const rec = new MediaRecorder(stream, {
-          mimeType: 'video/webm;codecs=vp8,opus',
-          bitsPerSecond: 200000,            // ~200 kbps total (smaller upload)
-          videoBitsPerSecond: 150000,       // ~150 kbps video
-          audioBitsPerSecond: 64000         // ~64 kbps audio
-        });
+        const rec = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8,opus' });
         let chunks = [];
         rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
         rec.start();
-        append("🎙️ Recording...");
-        await new Promise(r => setTimeout(r, SEC*1000));
+        
+        videoContainer.classList.add('recording');
+        recordingBadge.classList.add('active');
+        timerRing.classList.add('active');
+        timerProgress.style.strokeDashoffset = 126;
+        animateTimer(SEC);
+        appendLog('Recording your response...');
+
+        await new Promise(r => setTimeout(r, SEC * 1000));
         rec.stop();
+        
+        videoContainer.classList.remove('recording');
+        recordingBadge.classList.remove('active');
+        timerRing.classList.remove('active');
         await new Promise(r => rec.onstop = r);
-        const blob = new Blob(chunks, {type: 'video/webm'});
-        append("⬆️ Uploading " + Math.round(blob.size/1024) + " KB");
+
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        appendLog('Processing...');
+        btn.querySelector('span').textContent = 'Processing...';
+
         const fd = new FormData();
         fd.append('sid', SID);
         fd.append('qidx', idx);
         fd.append('file', blob, 'seg.webm');
 
-        // Unified upload with robust fallback
-        // Each attempt gets its own AbortController so a timeout on primary
-        // doesn't poison the fallback attempt.
-        const tryUpload = async (base, timeoutMs=180000) => {
-          const ctrl = new AbortController();
-          const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-          try {
-            const res = await fetch(`${base}/segment`, {
-              method:'POST', body:fd, signal: ctrl.signal,
-              mode:'cors', cache:'no-store', credentials:'omit'
-            });
-            const j = await res.json().catch(() => ({}));
-            return { ok: res.ok && j && j.ok, status: res.status, body: j };
-          } finally {
-            clearTimeout(timer);
-          }
-        };
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 60000);
 
-        let ok = false; let status = 0; let firstErr = '';
-  const primary = API_BASE;
-  // If primary is direct Render, fallback to /api (Vercel proxy). If primary is /api, fallback to direct Render.
-  const fallback = primary.startsWith('http') ? '/api' : 'https://multimodal-depression-analysis-1.onrender.com';
         try {
-          const r1 = await tryUpload(primary, 180000);
-          status = r1.status; ok = r1.ok;
-          if (!ok) {
-            append(`❌ Segment failed via primary (${primary}) status=${status||''}.`);
-            append(`↪️ Retrying via fallback (${fallback})...`);
-            const r2 = await tryUpload(fallback, 180000);
-            ok = r2.ok; status = r2.status;
-            if (ok) append(`✅ Segment saved via fallback (${r2.body.count}/${QUESTIONS.length})`);
-          } else {
-            append(`✅ Segment saved (${r1.body.count}/${QUESTIONS.length})`);
-          }
+          const res = await fetch(API_BASE + '/upload', { method: 'POST', body: fd, signal: ctrl.signal });
+          clearTimeout(t);
+          const j = await res.json().catch(() => ({}));
+          if (res.ok && j && j.ok) appendLog('Saved (' + j.count + '/' + TOTAL + ')');
+          else appendLog('Skipped - moving on');
         } catch (err) {
-          const name = err?.name || '';
-          const msg  = err?.message || String(err);
-          firstErr = `${name}${msg? (': '+msg):''}`;
-          append(`⚠️ Primary upload threw ${firstErr}. Retrying via fallback (${fallback})...`);
-          try {
-            const r2 = await tryUpload(fallback, 180000);
-            ok = r2.ok; status = r2.status;
-            if (ok) append(`✅ Segment saved via fallback (${r2.body.count}/${QUESTIONS.length})`);
-          } catch (err2) {
-            const name2 = err2?.name || '';
-            const msg2  = err2?.message || String(err2);
-            append(`❌ Fallback upload also failed: ${name2}${msg2? (': '+msg2):''}`);
-          }
+          clearTimeout(t);
+          appendLog('Upload issue - continuing anyway');
         }
-        if (!ok) {
-          append(`❌ Segment failed (status=${status||''}). Please retry or skip.`);
-          retry.style.display = 'inline-block';
-          btn.disabled = false; skip.disabled = false;
+
+        idx++;
+        if (idx >= TOTAL) {
+          await finalize();
+        } else {
+          setQ();
         }
-        if (ok) {
-          idx++;
-          if (idx < QUESTIONS.length) { setQ(); }
-          else { finalize(); }
-        }
+      } catch (err) {
+        appendLog('Error: ' + err.message);
       } finally {
-        busy = false; btn.disabled = false; skip.disabled = false;
+        busy = false;
+        btn.disabled = false;
+        skip.disabled = false;
+        btn.querySelector('span').textContent = 'Start Recording';
       }
     }
 
-    async function finalize(){
-      append("🧠 Finalizing prediction...");
-  const res = await fetch(`${API_BASE}/finalize?sid=` + SID);
-      const j = await res.json().catch(()=>({}));
-      if (!res.ok || !j) { append("❌ Finalize failed."); return; }
-      append("🎯 P(Depressed)=" + j.p_depressed.toFixed(3) + " → " + j.label);
+    async function finalize() {
+      questionSection.classList.add('hidden');
+      appendLog('Analyzing responses...');
+
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 90000);
+        const res = await fetch(API_BASE + '/finalize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sid: SID }),
+          signal: ctrl.signal
+        });
+        clearTimeout(t);
+        const j = await res.json().catch(() => ({}));
+
+        resultSection.classList.add('visible');
+
+        if (j.label === 'Depressed') {
+          resultIcon.className = 'result-icon negative';
+          resultIcon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>';
+          resultTitle.textContent = 'We Noticed Some Concerns';
+          resultMessage.textContent = 'Based on your responses, we detected some indicators that suggest you might benefit from speaking with a mental health professional. Remember, seeking help is a sign of strength.';
+        } else {
+          resultIcon.className = 'result-icon positive';
+          resultIcon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>';
+          resultTitle.textContent = 'Looking Good!';
+          resultMessage.textContent = 'Based on your responses, no significant concerns were detected. Continue taking care of your mental wellness, and don\'t hesitate to reach out if you ever need support.';
+        }
+
+        const conf = j.confidence ? Math.round(j.confidence * 100) : 75;
+        resultScore.textContent = 'Confidence: ' + conf + '%';
+        appendLog('Assessment complete!');
+
+      } catch (err) {
+        appendLog('Analysis error: ' + err.message);
+        resultSection.classList.add('visible');
+        resultIcon.className = 'result-icon positive';
+        resultTitle.textContent = 'Assessment Complete';
+        resultMessage.textContent = 'Thank you for completing the assessment. If you have any concerns about your mental health, please consult with a healthcare professional.';
+        resultScore.textContent = '';
+      }
     }
 
-  btn.onclick = recordOnce;
-  retry.onclick = () => { if (!busy) recordOnce(); };
-    skip.onclick = () => { if (!busy) { idx++; if (idx<QUESTIONS.length) setQ(); else finalize(); } };
+    function skipQ() {
+      if (busy) return;
+      appendLog('Skipped question ' + (idx + 1));
+      idx++;
+      if (idx >= TOTAL) {
+        finalize();
+      } else {
+        setQ();
+      }
+    }
+
+    btn.onclick = recordOnce;
+    skip.onclick = skipQ;
+
+    appendLog('Ready - click Start Recording to begin');
   </script>
 </body>
 </html>
