@@ -4,7 +4,7 @@ expertMode = true
 
 [nix]
 channel = "stable-25_05"
-packages = ["ffmpeg", "ffmpeg-full", "glibcLocales", "libsndfile", "mesa", "libGL"]
+packages = ["ffmpeg", "ffmpeg-full", "glibcLocales", "libGL", "libsndfile", "mesa"]
 
 [workflows]
 runButton = "Project"
@@ -33,3 +33,7 @@ outputType = "webview"
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["gunicorn", "--bind=0.0.0.0:5000", "--reuse-port", "--workers=2", "app.main:app"]
