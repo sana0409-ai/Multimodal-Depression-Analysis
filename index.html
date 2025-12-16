@@ -783,7 +783,7 @@
         const t = setTimeout(() => ctrl.abort(), 60000);
 
         try {
-          const res = await fetch(API_BASE + '/upload', { method: 'POST', body: fd, signal: ctrl.signal });
+          const res = await fetch(API_BASE + '/segment', { method: 'POST', body: fd, signal: ctrl.signal });
           clearTimeout(t);
           const j = await res.json().catch(() => ({}));
           if (res.ok && j && j.ok) appendLog('Saved (' + j.count + '/' + TOTAL + ')');
@@ -816,10 +816,8 @@
       try {
         const ctrl = new AbortController();
         const t = setTimeout(() => ctrl.abort(), 90000);
-        const res = await fetch(API_BASE + '/finalize', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sid: SID }),
+        const res = await fetch(API_BASE + '/finalize?sid=' + encodeURIComponent(SID), {
+          method: 'GET',
           signal: ctrl.signal
         });
         clearTimeout(t);
